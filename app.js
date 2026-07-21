@@ -375,7 +375,27 @@ function closeModal(){$("modal").hidden=true;document.body.style.overflow=""}
 function showLoading(){setStatus("");$("cards").innerHTML='<div class="loading">読み込み中です...</div>'}
 function showEmpty(t="該当するデータはありません。"){$("cards").innerHTML=`<div class="empty">${esc(t)}</div>`}
 function showError(e){$("cards").innerHTML=`<div class="error">${esc(e.message||String(e))}</div>`}
-function setStatus(t){$("status").textContent=t||""}
+function setStatus(t){const el=$("status");if(el)el.textContent=t||""}
+function showToast(message,type=""){
+  const text=String(message||"");
+  const status=$("status");
+  if(status){
+    status.textContent=text;
+    status.className=type==="error"?"error":"";
+  }
+  const summary=$("matchingSummary");
+  if(state.view==="matching"&&summary&&text){
+    summary.textContent=text;
+    summary.className="matching-summary"+(type==="error"?" error":"");
+  }
+  if(text){
+    clearTimeout(showToast._timer);
+    showToast._timer=setTimeout(()=>{
+      if(status&&status.textContent===text){status.textContent="";status.className="";}
+      if(summary&&summary.textContent===text){summary.textContent="";summary.className="matching-summary";}
+    },4500);
+  }
+}
 function setMsg(id,t,type=""){$(id).textContent=t||"";$(id).className="message"+(type?" "+type:"")}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
@@ -581,21 +601,43 @@ let matchingCandidateItems=[];
 async function loadMatchingCandidatesOnce(){
   if(matchingCandidatesLoaded)return;
   const select=$("matchingCandidateSelect");
+  const summary=$("matchingSummary");
   if(!select)return;
+  select.disabled=true;
+  select.innerHTML='<option value="">求職者を読み込み中...</option>';
   try{
     const items=await apiGet("matchingCandidates");
-    matchingCandidateItems=items||[];
+    matchingCandidateItems=Array.isArray(items)?items:[];
+    if(!matchingCandidateItems.length){
+      select.innerHTML='<option value="">対象の求職者がいません</option>';
+      if(summary)summary.textContent="マッチング対象の求職者が見つかりませんでした。";
+      matchingCandidatesLoaded=true;
+      return;
+    }
     select.innerHTML='<option value="">求職者を選択</option>'+matchingCandidateItems.map((x,i)=>
       `<option value="${i}">${esc(x.name||"")}｜${esc(x.prefecture||"")} ${esc(x.station||"")}｜${esc(x.experience||"")}</option>`
     ).join("");
     matchingCandidatesLoaded=true;
-  }catch(err){showToast(err?.message||"求職者一覧を取得できませんでした。","error");}
+    if(summary)summary.textContent=`求職者 ${matchingCandidateItems.length}名を読み込みました。`;
+  }catch(err){
+    select.innerHTML='<option value="">求職者を取得できませんでした</option>';
+    if(summary){
+      summary.textContent=err?.message||"求職者一覧を取得できませんでした。";
+      summary.className="matching-summary error";
+    }
+  }finally{
+    select.disabled=false;
+  }
 }
 
 async function runCandidateMatching(){
-  const idx=Number($("matchingCandidateSelect")?.value);
-  if(!Number.isFinite(idx)||!matchingCandidateItems[idx]){
+  const raw=$("matchingCandidateSelect")?.value??"";
+  if(raw===""){
     showToast("求職者を選択してください。","error");return;
+  }
+  const idx=Number(raw);
+  if(!Number.isInteger(idx)||idx<0||!matchingCandidateItems[idx]){
+    showToast("求職者の選択情報が正しくありません。","error");return;
   }
   const c=matchingCandidateItems[idx];
   const results=$("matchingResults"),summary=$("matchingSummary");
@@ -606,7 +648,10 @@ async function runCandidateMatching(){
     summary.textContent=`${data.candidate.name}さんに対して、募集中・確認中の案件 ${data.totalJobs}件を比較しました。`;
     renderMatchingResults(data.results||[]);
   }catch(err){
-    results.innerHTML=`<div class="error">${esc(err?.message||"マッチングに失敗しました。")}</div>`;
+    const message=err?.message||"マッチングに失敗しました。";
+    results.innerHTML=`<div class="error">${esc(message)}</div>`;
+    summary.textContent=message;
+    summary.className="matching-summary error";
   }
 }
 
