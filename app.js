@@ -314,7 +314,7 @@ function buildCandidateForm(x){
     field("fCompany","提案元会社",x.company)+field("fPrice","希望単価",x.price)+
     careerChecks(x.career)+
     field("fExp","経験値",x.experience,"text",["","通信経験者","通信未経験","通信微経験","コール経験者","コール未経験"])+
-    field("fStart","開始希望",x.startDate)+field("fProg","進捗",x.progress)+
+    field("fStart","開始希望",x.startDate)+field("fProg","進捗",x.progress,"text",progressStatusOptions(x.progress))+
     field("fMove","移動型可否",x.moveType,"text",["","○","×","距離次第"])+
     field("fSkillSheetUrl","スキルシートURL",x.skillSheetUrl||"","url",null,true)+
     field("fRemarks","備考",x.remarks,"textarea",null,true);
@@ -322,7 +322,7 @@ function buildCandidateForm(x){
 }
 
 function progressStatusOptions(current){
-  const values=["",...(state.progressStatuses||[])];
+  const values=["","案件待ち","案件提案中","面談待ち","合否待ち","完了","取り下げ","他社面談予定"];
   if(current&&!values.includes(current))values.push(current);
   return [...new Set(values)];
 }
