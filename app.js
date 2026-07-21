@@ -219,7 +219,8 @@ async function loadCurrent(){
     const p={q:$("searchInput").value,staff:$("staffFilter").value};
     let items;
     if(state.view==="matching"){
-      hideLoading();
+      setStatus("");
+      $("cards").innerHTML="";
       await loadMatchingCandidatesOnce();
       return;
     }else if(state.view==="home"){
