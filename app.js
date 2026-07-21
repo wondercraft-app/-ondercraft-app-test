@@ -29,6 +29,7 @@ function bindEvents(){
   $("editForm").onsubmit=saveEdit;
   $("copyProposalBtn").onclick=copyProposal;
   $("openSkillSheetBtn").onclick=openSkillSheet;
+  $("runMatchingBtn")?.addEventListener("click",runCandidateMatching);
   $("showPartnerRegisterBtn")?.addEventListener("click",()=>{const box=$("partnerRegisterBox");if(box)box.hidden=!box.hidden;});
   $("partnerRegisterBtn")?.addEventListener("click",submitPartnerRegistration);
   $("reloadPartnerRequestsBtn")?.addEventListener("click",loadPartnerRequests);
@@ -177,7 +178,7 @@ async function loadDashboard(){try{renderDashboard(await apiGet("dashboard"))}ca
 function renderDashboard(d){$("countCandidates").textContent=d.candidates??"-";$("countProgress").textContent=d.progress??"-";$("countToday").textContent=d.todayInterviews??"-";$("countWaiting").textContent=d.waitingCandidates??"-"}
 
 function switchView(view){
-  if(!["home","candidates","progress"].includes(view))view="home";
+  if(!["home","candidates","progress","matching"].includes(view))view="home";
   state.view=view;
   applyViewState();
   loadCurrent();
@@ -186,10 +187,12 @@ function switchView(view){
 function applyViewState(){
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));
   const isHome=state.view==="home";
+  const isMatching=state.view==="matching";
   $("dashboardSection").hidden=!isHome;
   $("homeHeader").hidden=!isHome;
-  $("listHeader").hidden=isHome;
-  $("filterSection").hidden=isHome;
+  $("matchingSection").hidden=!isMatching;
+  $("listHeader").hidden=isHome||isMatching;
+  $("filterSection").hidden=isHome||isMatching;
 
   if(state.view==="candidates"){
     $("viewTitle").textContent="求職者";
@@ -215,7 +218,11 @@ async function loadCurrent(){
   try{
     const p={q:$("searchInput").value,staff:$("staffFilter").value};
     let items;
-    if(state.view==="home"){
+    if(state.view==="matching"){
+      hideLoading();
+      await loadMatchingCandidatesOnce();
+      return;
+    }else if(state.view==="home"){
       items=await apiGet("today");
       if(requestId!==loadRequestId)return;
       state.today=items;renderToday(items);
@@ -564,4 +571,60 @@ async function rejectSkillRequest(requestId){
   const reason=prompt("却下理由（任意）",""); if(reason===null)return;
   try{await apiPost("rejectSkillSheetRequest",{requestId,reason});showToast("却下しました。");await loadSkillSheetRequests();}
   catch(err){showToast(err?.message||"却下に失敗しました。","error");}
+}
+
+
+let matchingCandidatesLoaded=false;
+let matchingCandidateItems=[];
+
+async function loadMatchingCandidatesOnce(){
+  if(matchingCandidatesLoaded)return;
+  const select=$("matchingCandidateSelect");
+  if(!select)return;
+  try{
+    const items=await apiGet("matchingCandidates");
+    matchingCandidateItems=items||[];
+    select.innerHTML='<option value="">求職者を選択</option>'+matchingCandidateItems.map((x,i)=>
+      `<option value="${i}">${esc(x.name||"")}｜${esc(x.prefecture||"")} ${esc(x.station||"")}｜${esc(x.experience||"")}</option>`
+    ).join("");
+    matchingCandidatesLoaded=true;
+  }catch(err){showToast(err?.message||"求職者一覧を取得できませんでした。","error");}
+}
+
+async function runCandidateMatching(){
+  const idx=Number($("matchingCandidateSelect")?.value);
+  if(!Number.isFinite(idx)||!matchingCandidateItems[idx]){
+    showToast("求職者を選択してください。","error");return;
+  }
+  const c=matchingCandidateItems[idx];
+  const results=$("matchingResults"),summary=$("matchingSummary");
+  results.innerHTML='<div class="loading">マッチング中...</div>';
+  summary.textContent="";
+  try{
+    const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
+    summary.textContent=`${data.candidate.name}さんに対して、募集中・確認中の案件 ${data.totalJobs}件を比較しました。`;
+    renderMatchingResults(data.results||[]);
+  }catch(err){
+    results.innerHTML=`<div class="error">${esc(err?.message||"マッチングに失敗しました。")}</div>`;
+  }
+}
+
+function renderMatchingResults(items){
+  const box=$("matchingResults");if(!box)return;
+  if(!items.length){box.innerHTML='<div class="empty">マッチする案件がありません。</div>';return;}
+  box.innerHTML=items.map(x=>`<article class="card match-card">
+    <div class="match-score">${Number(x.percent||0)}%</div>
+    <h3>${esc(x.shopName||"案件名未設定")}</h3>
+    <span class="badge">${esc(x.status||"募集中")}</span>
+    <div class="details">${rows([
+      ["案件元",x.sourceCompany],["エリア",x.area],["都道府県",x.prefecture],
+      ["単価",x.price],["未経験",x.beginnerAvailability],["稼働日数",x.workDays],
+      ["勤務時間",x.workTime],["休日",x.holiday]
+    ])}</div>
+    <div class="match-reasons">
+      ${(x.reasons||[]).map(v=>`<span class="match-reason">${esc(v)}</span>`).join("")}
+      ${(x.cautions||[]).map(v=>`<span class="match-caution">${esc(v)}</span>`).join("")}
+    </div>
+    ${x.originalText?`<div class="remarks">${esc(x.originalText)}</div>`:""}
+  </article>`).join("");
 }
