@@ -30,6 +30,9 @@ function bindEvents(){
   $("copyProposalBtn").onclick=copyProposal;
   $("openSkillSheetBtn").onclick=openSkillSheet;
   $("runMatchingBtn")?.addEventListener("click",runCandidateMatching);
+  $("matchModeCandidateBtn")?.addEventListener("click",()=>setMatchingMode("candidate"));
+  $("matchModeJobBtn")?.addEventListener("click",()=>setMatchingMode("job"));
+  $("matchingJobSearch")?.addEventListener("input",e=>renderMatchingJobOptions(e.target.value));
   $("showPartnerRegisterBtn")?.addEventListener("click",()=>{const box=$("partnerRegisterBox");if(box)box.hidden=!box.hidden;});
   $("partnerRegisterBtn")?.addEventListener("click",submitPartnerRegistration);
   $("reloadPartnerRequestsBtn")?.addEventListener("click",loadPartnerRequests);
@@ -221,7 +224,8 @@ async function loadCurrent(){
     if(state.view==="matching"){
       setStatus("");
       $("cards").innerHTML="";
-      await loadMatchingCandidatesOnce();
+      if(matchingMode==="candidate")await loadMatchingCandidatesOnce();
+      else await loadMatchingJobsOnce();
       return;
     }else if(state.view==="home"){
       items=await apiGet("today");
@@ -596,81 +600,131 @@ async function rejectSkillRequest(requestId){
 
 
 let matchingCandidatesLoaded=false;
+let matchingJobsLoaded=false;
 let matchingCandidateItems=[];
+let matchingJobItems=[];
+let matchingMode="candidate";
 
 async function loadMatchingCandidatesOnce(){
   if(matchingCandidatesLoaded)return;
-  const select=$("matchingCandidateSelect");
-  const summary=$("matchingSummary");
+  const select=$("matchingCandidateSelect"),summary=$("matchingSummary");
   if(!select)return;
-  select.disabled=true;
-  select.innerHTML='<option value="">求職者を読み込み中...</option>';
+  select.disabled=true; select.innerHTML='<option value="">求職者を読み込み中...</option>';
   try{
     const items=await apiGet("matchingCandidates");
     matchingCandidateItems=Array.isArray(items)?items:[];
-    if(!matchingCandidateItems.length){
-      select.innerHTML='<option value="">対象の求職者がいません</option>';
-      if(summary)summary.textContent="マッチング対象の求職者が見つかりませんでした。";
-      matchingCandidatesLoaded=true;
-      return;
-    }
     select.innerHTML='<option value="">求職者を選択</option>'+matchingCandidateItems.map((x,i)=>
-      `<option value="${i}">${esc(x.name||"")}｜${esc(x.prefecture||"")} ${esc(x.station||"")}｜${esc(x.experience||"")}</option>`
-    ).join("");
+      `<option value="${i}">${esc(x.name||"")}｜${esc(x.prefecture||"")} ${esc(x.station||"")}｜${esc(x.experience||"")}</option>`).join("");
     matchingCandidatesLoaded=true;
     if(summary)summary.textContent=`求職者 ${matchingCandidateItems.length}名を読み込みました。`;
   }catch(err){
     select.innerHTML='<option value="">求職者を取得できませんでした</option>';
-    if(summary){
-      summary.textContent=err?.message||"求職者一覧を取得できませんでした。";
-      summary.className="matching-summary error";
-    }
-  }finally{
-    select.disabled=false;
-  }
+    if(summary)summary.textContent=err?.message||"求職者一覧を取得できませんでした。";
+  }finally{select.disabled=false;}
+}
+
+async function loadMatchingJobsOnce(){
+  if(matchingJobsLoaded)return;
+  const select=$("matchingJobSelect"),summary=$("matchingSummary");
+  if(!select)return;
+  select.disabled=true; select.innerHTML='<option value="">案件を読み込み中...</option>';
+  try{
+    const items=await apiGet("matchingJobs");
+    matchingJobItems=Array.isArray(items)?items:[];
+    matchingJobsLoaded=true; renderMatchingJobOptions("");
+    if(summary)summary.textContent=`案件 ${matchingJobItems.length}件を読み込みました。`;
+  }catch(err){
+    select.innerHTML='<option value="">案件を取得できませんでした</option>';
+    if(summary)summary.textContent=err?.message||"案件一覧を取得できませんでした。";
+  }finally{select.disabled=false;}
+}
+
+function renderMatchingJobOptions(query){
+  const select=$("matchingJobSelect");if(!select)return;
+  const q=String(query||"").normalize("NFKC").toLowerCase().trim();
+  const filtered=matchingJobItems.map((x,i)=>({x,i})).filter(({x})=>{
+    if(!q)return true;
+    return [x.shopName,x.prefecture,x.area,x.sourceCompany,x.price].join(" ").normalize("NFKC").toLowerCase().includes(q);
+  }).slice(0,300);
+  select.innerHTML='<option value="">案件を選択</option>'+filtered.map(({x,i})=>
+    `<option value="${i}">${esc(x.shopName||"案件名未設定")}｜${esc(x.prefecture||x.area||"")}｜${esc(x.price||"")}</option>`).join("");
+}
+
+async function setMatchingMode(mode){
+  matchingMode=mode==="job"?"job":"candidate";
+  $("matchModeCandidateBtn")?.classList.toggle("active",matchingMode==="candidate");
+  $("matchModeJobBtn")?.classList.toggle("active",matchingMode==="job");
+  $("matchingCandidateLabel").hidden=matchingMode!=="candidate";
+  $("matchingJobLabel").hidden=matchingMode!=="job";
+  $("runMatchingBtn").textContent=matchingMode==="candidate"?"おすすめ案件を探す":"おすすめ求職者を探す";
+  $("matchingResults").innerHTML=""; $("matchingSummary").textContent="";
+  if(matchingMode==="candidate")await loadMatchingCandidatesOnce(); else await loadMatchingJobsOnce();
 }
 
 async function runCandidateMatching(){
+  if(matchingMode==="job")return runJobMatching();
   const raw=$("matchingCandidateSelect")?.value??"";
-  if(raw===""){
-    showToast("求職者を選択してください。","error");return;
-  }
-  const idx=Number(raw);
-  if(!Number.isInteger(idx)||idx<0||!matchingCandidateItems[idx]){
-    showToast("求職者の選択情報が正しくありません。","error");return;
-  }
-  const c=matchingCandidateItems[idx];
+  if(raw===""){showToast("求職者を選択してください。","error");return;}
+  const c=matchingCandidateItems[Number(raw)];
+  if(!c){showToast("求職者の選択情報が正しくありません。","error");return;}
   const results=$("matchingResults"),summary=$("matchingSummary");
-  results.innerHTML='<div class="loading">マッチング中...</div>';
-  summary.textContent="";
+  results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
   try{
     const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
-    summary.textContent=`${data.candidate.name}さんに対して、募集中・確認中の案件 ${data.totalJobs}件を比較しました。`;
-    renderMatchingResults(data.results||[]);
+    summary.textContent=`${data.candidate.name}さん × 案件${data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
+    renderJobMatchResults(data.results||[]);
   }catch(err){
     const message=err?.message||"マッチングに失敗しました。";
-    results.innerHTML=`<div class="error">${esc(message)}</div>`;
-    summary.textContent=message;
-    summary.className="matching-summary error";
+    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
   }
 }
 
-function renderMatchingResults(items){
+async function runJobMatching(){
+  const raw=$("matchingJobSelect")?.value??"";
+  if(raw===""){showToast("案件を選択してください。","error");return;}
+  const job=matchingJobItems[Number(raw)];
+  if(!job){showToast("案件の選択情報が正しくありません。","error");return;}
+  const results=$("matchingResults"),summary=$("matchingSummary");
+  results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
+  try{
+    const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
+    summary.textContent=`${data.job.shopName||"選択案件"} × 求職者${data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
+    renderCandidateMatchResults(data.results||[]);
+  }catch(err){
+    const message=err?.message||"マッチングに失敗しました。";
+    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
+  }
+}
+
+function matchBadges(x){
+  return `<div class="match-meta"><span class="match-grade">${esc(x.grade||"")}</span>`+
+    (x.reasons||[]).map(v=>`<span class="match-reason">${esc(v)}</span>`).join("")+
+    (x.cautions||[]).map(v=>`<span class="match-caution">${esc(v)}</span>`).join("")+`</div>`;
+}
+
+function renderJobMatchResults(items){
   const box=$("matchingResults");if(!box)return;
   if(!items.length){box.innerHTML='<div class="empty">マッチする案件がありません。</div>';return;}
   box.innerHTML=items.map(x=>`<article class="card match-card">
     <div class="match-score">${Number(x.percent||0)}%</div>
-    <h3>${esc(x.shopName||"案件名未設定")}</h3>
-    <span class="badge">${esc(x.status||"募集中")}</span>
+    <h3>${esc(x.shopName||"案件名未設定")}</h3>${matchBadges(x)}
     <div class="details">${rows([
       ["案件元",x.sourceCompany],["エリア",x.area],["都道府県",x.prefecture],
       ["単価",x.price],["未経験",x.beginnerAvailability],["稼働日数",x.workDays],
       ["勤務時間",x.workTime],["休日",x.holiday]
-    ])}</div>
-    <div class="match-reasons">
-      ${(x.reasons||[]).map(v=>`<span class="match-reason">${esc(v)}</span>`).join("")}
-      ${(x.cautions||[]).map(v=>`<span class="match-caution">${esc(v)}</span>`).join("")}
-    </div>
-    ${x.originalText?`<div class="remarks">${esc(x.originalText)}</div>`:""}
+    ])}</div>${x.originalText?`<div class="remarks">${esc(x.originalText)}</div>`:""}
+  </article>`).join("");
+}
+
+function renderCandidateMatchResults(items){
+  const box=$("matchingResults");if(!box)return;
+  if(!items.length){box.innerHTML='<div class="empty">マッチする求職者がいません。</div>';return;}
+  box.innerHTML=items.map(x=>`<article class="card match-card">
+    <div class="match-score">${Number(x.percent||0)}%</div>
+    <h3>${esc(x.name||"名前未設定")}</h3>${matchBadges(x)}
+    <div class="details">${rows([
+      ["都道府県",x.prefecture],["最寄駅",x.station],["希望単価",x.price],
+      ["キャリア",x.career],["経験",x.experience],["開始希望",x.startDate],["地域",x.region]
+    ])}</div>${x.remarks?`<div class="remarks">${esc(x.remarks)}</div>`:""}
   </article>`).join("");
 }
