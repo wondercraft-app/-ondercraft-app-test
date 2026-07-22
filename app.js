@@ -43,52 +43,53 @@ function bindEvents(){
   $("partnerSearchInput")?.addEventListener("input",()=>{clearTimeout(partnerSearchTimer);partnerSearchTimer=setTimeout(reloadPartnerPortal,350);});
 }
 
+
+const WC_BOOT_CACHE_KEY="wc_boot_cache_v1";
+const WC_BOOT_CACHE_TTL=6*60*60*1000;
+function readBootCache(){try{const raw=localStorage.getItem(WC_BOOT_CACHE_KEY);if(!raw)return null;const obj=JSON.parse(raw);if(!obj||!obj.savedAt||Date.now()-obj.savedAt>WC_BOOT_CACHE_TTL)return null;return obj.data||null}catch(e){return null}}
+function writeBootCache(data){try{localStorage.setItem(WC_BOOT_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data}))}catch(e){}}
+function applyBootstrapData(bootstrap){
+  state.user=bootstrap.user||null;applyRoleUi();
+  state.runtimeConfig=bootstrap.config||{};
+  if(state.user?.role==="partner"){updateUserUi();$("appPanel").hidden=false;hideSystemPanel();showPartnerPortal(bootstrap);return "partner"}
+  updateUserUi();const filters=bootstrap.filters||{};state.progressStatuses=filters.progressStatuses||[];
+  fillSelect("staffFilter",filters.staff||[],"担当者：全員");fillSelect("regionFilter",filters.regions||[],"地域：すべて");
+  renderDashboard(bootstrap.dashboard||{});state.today=bootstrap.today||[];$("appPanel").hidden=false;hideSystemPanel();applyViewState();if(state.view==="home")renderToday(state.today);return "internal";
+}
+
 async function initialize(force=false){
+  let usedCache=false;
   try{
     hideLogin();
-    if($("appPanel").hidden){
-      $("systemPanel").hidden=false;
-      $("systemTitle").textContent="接続確認中";
-      $("systemMessage").textContent="システムへ接続しています。";
-      $("systemRetryBtn").hidden=true;
-    }
     const api=getApi();
     if(!api||api.includes("ここにGAS"))return showMaintenance("現在システムメンテナンス中です。しばらくしてから再度お試しください。");
-
     const token=getToken();
     if(!token)return showLogin();
 
-    const bootstrap=await apiGet("bootstrap",{},api,token);
-    state.user=bootstrap.user||null;
-    applyRoleUi();
-    if(state.user && ["admin","staff"].includes(state.user.role)){
-      setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},0);
-    }
-    state.runtimeConfig=bootstrap.config||{};
-    if(state.runtimeConfig.maintenance)return showMaintenance(state.runtimeConfig.maintenanceMessage||"現在メンテナンス中です。");
-    if(state.user?.role==="partner"){
-      updateUserUi();
-      $("appPanel").hidden=false;
-      hideSystemPanel();
-      showPartnerPortal(bootstrap);
-      return;
+    if(!force){
+      const cached=readBootCache();
+      if(cached){
+        const role=applyBootstrapData(cached);
+        usedCache=true;
+        if(role==="internal"&&state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},0);
+      }
     }
 
-    updateUserUi();
-    const filters=bootstrap.filters||{};
-    state.progressStatuses=filters.progressStatuses||[];
-    fillSelect("staffFilter",filters.staff||[],"担当者：全員");
-    fillSelect("regionFilter",filters.regions||[],"地域：すべて");
-    renderDashboard(bootstrap.dashboard||{});
-    state.today=bootstrap.today||[];
-    $("appPanel").hidden=false;
-    hideSystemPanel();
+    if(!usedCache&&$("appPanel").hidden){
+      $("systemPanel").hidden=false;$("systemTitle").textContent="接続確認中";$("systemMessage").textContent="システムへ接続しています。";$("systemRetryBtn").hidden=true;
+    }
+
+    const bootstrap=await apiGet("bootstrap",{},api,token);
+    if(bootstrap?.config?.maintenance)return showMaintenance(bootstrap.config.maintenanceMessage||"現在メンテナンス中です。");
+    const role=applyBootstrapData(bootstrap);
+    writeBootCache({user:bootstrap.user||null,config:bootstrap.config||{},filters:bootstrap.filters||{},dashboard:bootstrap.dashboard||{},today:bootstrap.today||[]});
+    if(state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},0);
     if(force)setStatus("最新情報を読み込みました。");
-    applyViewState();
-    if(state.view==="home")renderToday(state.today);else await loadCurrent();
+    if(role==="internal"&&state.view!=="home")await loadCurrent();
   }catch(error){
     if(isAuthError(error)){clearToken();state.user=null;updateUserUi();return showLogin("ログインの有効期限が切れました。もう一度ログインしてください。");}
-    showMaintenance("現在システムメンテナンス中です。しばらくしてから再度お試しください。");
+    if(!usedCache)showMaintenance("現在システムメンテナンス中です。しばらくしてから再度お試しください。");
+    else setStatus("最新情報の同期に失敗しました。前回データを表示しています。");
   }
 }
 
@@ -671,7 +672,7 @@ async function runCandidateMatching(){
   results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
   try{
     const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
-    summary.textContent=`${data.candidate.name}さん × 案件${data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
+    summary.textContent=`${data.candidate.name}さん｜全${data.totalJobs}件 → 条件絞込${data.filteredJobs ?? data.totalJobs}件 → 重複整理${data.dedupedJobs ?? data.filteredJobs ?? data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
     renderJobMatchResults(data.results||[]);
   }catch(err){
     const message=err?.message||"マッチングに失敗しました。";
@@ -688,7 +689,7 @@ async function runJobMatching(){
   results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
   try{
     const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
-    summary.textContent=`${data.job.shopName||"選択案件"} × 求職者${data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
+    summary.textContent=`${data.job.shopName||"選択案件"}｜求職者${data.totalCandidates}名 → 条件絞込${data.filteredCandidates ?? data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
     renderCandidateMatchResults(data.results||[]);
   }catch(err){
     const message=err?.message||"マッチングに失敗しました。";

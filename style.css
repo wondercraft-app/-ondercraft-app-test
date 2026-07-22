@@ -73,3 +73,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
 #matchingJobSearch{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:12px;font:inherit}
 .match-grade{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:9px;background:var(--navy);color:#fff;font-weight:900;margin-right:6px}
 .match-meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+
+
+.matching-summary{line-height:1.7}
+.match-filter-note{font-size:12px;color:var(--muted);margin-top:4px}
