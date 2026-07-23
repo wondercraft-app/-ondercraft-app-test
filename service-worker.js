@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-10-navitime";
+const CACHE="wondercraft-wc-7-12-bootstrap";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.10.0",
-  "./config.js?v=7.10.0-navitime",
-  "./app.js?v=7.10.0-navitime",
+  "./style.css?v=7.12.0",
+  "./config.js?v=7.12.0-bootstrap",
+  "./app.js?v=7.12.0-bootstrap",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",
