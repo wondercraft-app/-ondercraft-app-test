@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.13 NAVITIME Final Accuracy - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.14 NAVITIME Score Final - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -9,7 +9,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.13 NAVITIME Final Accuracy";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.14 NAVITIME Score Final";
   initialize();
 });
 
@@ -742,6 +742,7 @@ function renderJobMatchResults(items){
         : "未記載：60分以内◎／61〜90分△"],
       ["通勤判定",x.commuteLabel||x.commuteStatus||"要確認"],
       ["通勤時間",x.commuteMinutes!=null?`約${x.commuteMinutes}分`:"要確認"],
+      ["通勤補正",Number(x.commutePenalty||0)>0?`-${Number(x.commutePenalty)}点`:"なし"],
       ["単価",x.price],["未経験",x.beginnerAvailability],["稼働日数",x.workDays],
       ["勤務時間",x.workTime],["休日",x.holiday]
     ])}</div>${x.originalText?`<div class="remarks">${esc(x.originalText)}</div>`:""}
