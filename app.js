@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.12 Bootstrap Recovery - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.13 NAVITIME Final Accuracy - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -9,7 +9,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.12 Bootstrap Recovery";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.13 NAVITIME Final Accuracy";
   initialize();
 });
 
@@ -737,6 +737,9 @@ function renderJobMatchResults(items){
     <h3>${esc(x.shopName||"案件名未設定")}</h3>${matchBadges(x)}
     <div class="details">${rows([
       ["案件元",x.sourceCompany],["エリア",x.area],["都道府県",x.prefecture],
+      ["通勤条件",x.commuteLimitExplicit
+        ? `本人上限${x.commuteLimitMinutes||"-"}分（+10分まで△表示）`
+        : "未記載：60分以内◎／61〜90分△"],
       ["通勤判定",x.commuteLabel||x.commuteStatus||"要確認"],
       ["通勤時間",x.commuteMinutes!=null?`約${x.commuteMinutes}分`:"要確認"],
       ["単価",x.price],["未経験",x.beginnerAvailability],["稼働日数",x.workDays],

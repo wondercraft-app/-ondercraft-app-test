@@ -1,5 +1,5 @@
 window.WONDERCRAFT_CONFIG = {
   APP_NAME: "WonderCraft 人材管理",
-  VERSION: "WC-7.12 Bootstrap Recovery",
+  VERSION: "WC-7.13 NAVITIME Final Accuracy",
   GAS_API_URL: "https://script.google.com/macros/s/AKfycbwvXGHmvtq07Te5E4eD82MnXowODqGkaqFvOSgly0GBovRhlaBVA7DyeUzMk9pOZK4z/exec"
 };
