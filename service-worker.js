@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-18-request-safe";
+const CACHE="wondercraft-wc-7-19-request-exact";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.18.0",
-  "./config.js?v=7.18.0-request-safe",
-  "./app.js?v=7.18.0-request-safe",
+  "./style.css?v=7.19.0",
+  "./config.js?v=7.19.0-request-exact",
+  "./app.js?v=7.19.0-request-exact",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

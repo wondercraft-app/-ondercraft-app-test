@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.18 Request Card Safe Hide - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.19 Exact Empty Request Hide - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -9,7 +9,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.18 Request Card Safe Hide";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.19 Exact Empty Request Hide";
   initialize();
 });
 
@@ -447,6 +447,7 @@ async function submitPartnerRegistration(){
 }
 
 async function loadPartnerRequests(){
+  setRequestPanelVisible_("partnerRequestsList", true);
   if(!state.user || !["admin","staff"].includes(state.user.role)) return;
   const panel=document.getElementById("partnerApprovalPanel");
   const list=document.getElementById("partnerRequestsList");
@@ -455,7 +456,12 @@ async function loadPartnerRequests(){
   list.innerHTML='<div class="empty">読み込み中...</div>';
   try{
     const rows=await apiPost("partnerRequests",{});
-    if(!Array.isArray(rows)||!rows.length){list.innerHTML='<div class="empty">登録申請はありません。</div>';return;}
+    if(!Array.isArray(rows)||!rows.length){
+      list.innerHTML='<div class="empty">登録申請はありません。</div>';
+      setRequestPanelVisible_("partnerRequestsList", false);
+      return;
+    }
+    setRequestPanelVisible_("partnerRequestsList", true);
     list.innerHTML=rows.map(r=>`
       <div class="partner-request-card">
         <div class="partner-request-main">
@@ -470,6 +476,7 @@ async function loadPartnerRequests(){
         </div>`:""}
       </div>`).join("");
   }catch(err){
+    setRequestPanelVisible_("partnerRequestsList", true);
     list.innerHTML='<div class="empty">申請一覧を取得できませんでした。</div>';
   }
 }
@@ -593,13 +600,30 @@ function showPartnerTab(tab){
   $("partnerRequestsTab").classList.toggle("active",!candidates);
 }
 
+
+function setRequestPanelVisible_(listId, visible){
+  const list = document.getElementById(listId);
+  if(!list) return;
+
+  const panel = list.closest(".approval-panel");
+  if(!panel) return;
+
+  panel.style.display = visible ? "" : "none";
+}
+
 async function loadSkillSheetRequests(){
+  setRequestPanelVisible_("skillRequestsList", true);
   if(!state.user||!["admin","staff"].includes(state.user.role))return;
   const list=$("skillRequestsList"); if(!list)return;
   list.innerHTML='<div class="empty">読み込み中...</div>';
   try{
     const rows=await apiPost("skillSheetRequests",{});
-    if(!Array.isArray(rows)||!rows.length){list.innerHTML='<div class="empty">スキルシート申請はありません。</div>';return;}
+    if(!Array.isArray(rows)||!rows.length){
+      list.innerHTML='<div class="empty">スキルシート申請はありません。</div>';
+      setRequestPanelVisible_("skillRequestsList", false);
+      return;
+    }
+    setRequestPanelVisible_("skillRequestsList", true);
     list.innerHTML=rows.map(r=>`<div class="partner-request-card">
       <div class="partner-request-main">
         <strong>${esc(r.candidateName||"")}</strong>
@@ -611,7 +635,10 @@ async function loadSkillSheetRequests(){
         <button class="secondary" onclick="rejectSkillRequest('${esc(r.requestId)}')">却下</button>
       </div>`:(r.status==="承認済み"&&r.skillSheetUrl?`<a class="secondary link-button" href="${esc(r.skillSheetUrl)}" target="_blank" rel="noopener">確認</a>`:"")}
     </div>`).join("");
-  }catch(err){list.innerHTML='<div class="empty">申請一覧を取得できませんでした。</div>';}
+  }catch(err){
+    setRequestPanelVisible_("skillRequestsList", true);
+    list.innerHTML='<div class="empty">申請一覧を取得できませんでした。</div>';
+  }
 }
 
 async function approveSkillRequest(requestId){
@@ -771,56 +798,5 @@ function renderCandidateMatchResults(items){
 
 
 
-function wcSetEmptyRequestCardsVisibility_(){
-  try{
-    const cards = Array.from(document.querySelectorAll(".request-card, .approval-card, .home-request-card, .card"));
 
-    cards.forEach(function(card){
-      const text = String(card.innerText || "").replace(/\s+/g, " ").trim();
-
-      const approvalCard =
-        text.includes("他企業 登録申請") ||
-        text.includes("APPROVAL");
-
-      const skillCard =
-        text.includes("スキルシート申請") ||
-        text.includes("SKILL SHEET");
-
-      if(!approvalCard && !skillCard) return;
-
-      const isLoading =
-        text.includes("読み込み中");
-
-      // 読み込み中は表示しておく
-      if(isLoading){
-        card.style.display = "";
-        return;
-      }
-
-      const empty =
-        (approvalCard && text.includes("登録申請はありません")) ||
-        (skillCard && text.includes("スキルシート申請はありません"));
-
-      card.style.display = empty ? "none" : "";
-    });
-  }catch(err){
-    console.warn("request card visibility update failed", err);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", function(){
-  wcSetEmptyRequestCardsVisibility_();
-
-  let wcRequestCardTimer = null;
-  const wcRequestCardObserver = new MutationObserver(function(){
-    clearTimeout(wcRequestCardTimer);
-    wcRequestCardTimer = setTimeout(wcSetEmptyRequestCardsVisibility_, 100);
-  });
-
-  wcRequestCardObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
-});
 
