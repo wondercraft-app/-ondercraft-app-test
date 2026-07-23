@@ -150,18 +150,24 @@ code,
 }
 
 
-/* WC-7.22 Center Loading Overlay */
+
+
+/* WC-7.23 Center WC Rotating Loader */
 .wc-loading-overlay {
   position: fixed;
   inset: 0;
   z-index: 99999;
   display: grid;
   place-items: center;
-  background: rgba(248, 250, 252, 0.88);
+  background: rgba(248, 250, 252, 0.92);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
-.wc-loading-overlay[hidden] { display: none !important; }
+
+.wc-loading-overlay[hidden] {
+  display: none !important;
+}
+
 .wc-loading-box {
   display: grid;
   place-items: center;
@@ -169,21 +175,27 @@ code,
   padding: 22px 26px;
   min-width: 150px;
 }
+
 .wc-loading-logo {
-  width: 58px;
-  height: 58px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background: #fff;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 8px 24px rgba(15,23,42,.12), inset 0 0 0 1px rgba(15,23,42,.08);
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.14),
+    inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 900;
   font-size: 25px;
   letter-spacing: -3px;
+  animation: wcWholeLogoSpin .9s linear infinite;
+  will-change: transform;
 }
+
 .wc-loading-logo::before {
   content: "";
   position: absolute;
@@ -194,17 +206,26 @@ code,
   border-left-color: #111111;
   border-right-color: #2563eb;
   border-bottom-color: #2563eb;
-  animation: wcCenterLoaderSpin .9s linear infinite;
 }
-.wc-loading-w { color: #111111; transform: translateX(1px); }
-.wc-loading-c { color: #2563eb; transform: translateX(-1px); }
+
+.wc-loading-w {
+  color: #111111;
+  transform: translateX(1px);
+}
+
+.wc-loading-c {
+  color: #2563eb;
+  transform: translateX(-1px);
+}
+
 .wc-loading-text {
   color: #334155;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: .02em;
 }
-@keyframes wcCenterLoaderSpin {
+
+@keyframes wcWholeLogoSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }

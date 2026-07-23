@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.22 Center WC Loader - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.23 Rotating WC Loader - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -6,15 +6,17 @@ let debounceTimer;
 let loadRequestId=0;
 
 window.addEventListener("load",async()=>{
+  wcLoadingDepth = 1;
+  wcLoadingShownAt = Date.now();
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.22 Center WC Loader";
-  showWcLoading_("読み込み中…");
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.23 Rotating WC Loader";
+  updateWcLoadingText_("読み込み中…");
   try{
     await initialize();
   }finally{
-    hideWcLoading_(true);
+    await hideWcLoading_(true);
   }
 });
 
@@ -47,7 +49,7 @@ async function handleManualReload(){
     setStatus("更新に失敗しました。もう一度お試しください。");
     console.error("manual reload failed", err);
   }finally{
-    hideWcLoading_(true);
+    await hideWcLoading_(true);
     if(btn){
       btn.disabled = false;
       btn.classList.remove("is-loading");
@@ -100,27 +102,52 @@ async function registerWonderCraftServiceWorker_(){
 
 
 let wcLoadingDepth = 0;
+let wcLoadingShownAt = 0;
+const WC_LOADING_MIN_MS = 800;
 function showWcLoading_(message){
   const overlay = $("wcLoadingOverlay");
   const text = $("wcLoadingText");
+
   wcLoadingDepth++;
+
+  if(wcLoadingDepth === 1){
+    wcLoadingShownAt = Date.now();
+  }
+
   if(text) text.textContent = message || "読み込み中…";
-  if(overlay){ overlay.hidden = false; overlay.setAttribute("aria-busy","true"); }
+
+  if(overlay){
+    overlay.hidden = false;
+    overlay.setAttribute("aria-busy","true");
+  }
 }
 function updateWcLoadingText_(message){
   const text = $("wcLoadingText");
   if(text) text.textContent = message || "読み込み中…";
 }
-function hideWcLoading_(force=false){
+async function hideWcLoading_(force=false){
   if(force) wcLoadingDepth = 0;
   else wcLoadingDepth = Math.max(0, wcLoadingDepth - 1);
+
   if(wcLoadingDepth > 0 && !force) return;
+
+  const elapsed = Date.now() - wcLoadingShownAt;
+  const wait = Math.max(0, WC_LOADING_MIN_MS - elapsed);
+
+  if(wait){
+    await new Promise(resolve => setTimeout(resolve, wait));
+  }
+
   const overlay = $("wcLoadingOverlay");
-  if(overlay){ overlay.hidden = true; overlay.setAttribute("aria-busy","false"); }
+
+  if(overlay){
+    overlay.hidden = true;
+    overlay.setAttribute("aria-busy","false");
+  }
 }
 
 function bindEvents(){
-  $("systemRetryBtn").onclick=async()=>{showWcLoading_("再接続中…");try{await initialize(true)}finally{hideWcLoading_(true)}};
+  $("systemRetryBtn").onclick=async()=>{showWcLoading_("再接続中…");try{await initialize(true)}finally{await hideWcLoading_(true)}};
   $("loginForm").onsubmit=handleLogin;
   $("logoutBtn").onclick=logout;
   $("forgotPasswordBtn").onclick=()=>showLoginMessage("パスワード再発行申請は次の段階で追加します。現在は自社担当者へご連絡ください。",false);
