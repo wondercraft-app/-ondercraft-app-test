@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.26 Stable Unified Loader - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.27 Performance - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -11,7 +11,7 @@ window.addEventListener("load",async()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.26 Stable Unified Loader";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.27 Performance";
   updateWcLoadingText_("読み込み中…");
   try{
     await initialize();
@@ -25,6 +25,7 @@ let wcReloading = false;
 let wcSwRefreshing = false;
 
 async function handleManualReload(){
+  wcViewCacheClear_();
   if(wcReloading) return;
   const btn = $("reloadBtn");
   wcReloading = true;
@@ -146,6 +147,33 @@ async function hideWcLoading_(force=false){
   }
 }
 
+
+const WC_VIEW_CACHE_TTL = 60 * 1000;
+const wcViewCache = new Map();
+
+function wcViewCacheKey_(view, params){
+  return view + ":" + JSON.stringify(params || {});
+}
+function wcViewCacheGet_(view, params){
+  const key = wcViewCacheKey_(view, params);
+  const item = wcViewCache.get(key);
+  if(!item) return null;
+  if(Date.now() - item.savedAt > WC_VIEW_CACHE_TTL){
+    wcViewCache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+function wcViewCachePut_(view, params, data){
+  wcViewCache.set(
+    wcViewCacheKey_(view, params),
+    {savedAt:Date.now(), data:data}
+  );
+}
+function wcViewCacheClear_(){
+  wcViewCache.clear();
+}
+
 function bindEvents(){
   $("systemRetryBtn").onclick=async()=>{showWcLoading_("再接続中…");try{await initialize(true)}finally{await hideWcLoading_(true)}};
   $("loginForm").onsubmit=handleLogin;
@@ -203,7 +231,7 @@ async function initialize(force=false){
       if(cached){
         const role=applyBootstrapData(cached);
         usedCache=true;
-        if(role==="internal"&&state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},0);
+        if(role==="internal"&&state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},1200);
       }
     }
 
@@ -215,7 +243,7 @@ async function initialize(force=false){
     if(bootstrap?.config?.maintenance)return showMaintenance(bootstrap.config.maintenanceMessage||"現在メンテナンス中です。");
     const role=applyBootstrapData(bootstrap);
     writeBootCache({user:bootstrap.user||null,config:bootstrap.config||{},filters:bootstrap.filters||{},dashboard:bootstrap.dashboard||{},today:bootstrap.today||[]});
-    if(state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},0);
+    if(state.user&&["admin","staff"].includes(state.user.role))setTimeout(()=>{loadPartnerRequests();loadSkillSheetRequests();},1200);
     if(force)setStatus("最新情報を読み込みました。");
     if(role==="internal"&&state.view!=="home")await loadCurrent();
   }catch(error){
@@ -374,38 +402,79 @@ function applyViewState(){
 }
 
 async function loadCurrent(){
+  if($("appPanel").hidden) return;
+
+  const requestId = ++loadRequestId;
+  const p = {
+    q: $("searchInput").value,
+    staff: $("staffFilter").value
+  };
+
+  if(state.view==="matching"){
+    showWcLoading_("読み込み中…");
+    try{
+      setStatus("");
+      $("cards").innerHTML="";
+      if(matchingMode==="candidate") await loadMatchingCandidatesOnce();
+      else await loadMatchingJobsOnce();
+    }finally{
+      await hideWcLoading_();
+    }
+    return;
+  }
+
+  if(state.view==="home"){
+    showWcLoading_("読み込み中…");
+    try{
+      const items=await apiGet("today");
+      if(requestId!==loadRequestId) return;
+      state.today=items;
+      renderToday(items);
+    }finally{
+      await hideWcLoading_();
+    }
+    return;
+  }
+
+  if(state.view==="candidates"){
+    p.region=$("regionFilter").value;
+    p.experienceType=$("experienceFilter").value;
+    p.careerType=$("careerFilter").value;
+  }
+
+  const cacheView = state.view==="candidates" ? "candidates" : "progress";
+  const cached = wcViewCacheGet_(cacheView,p);
+
+  if(cached){
+    if(cacheView==="candidates"){
+      state.candidates=cached;
+      renderCandidates(cached);
+    }else{
+      state.progress=cached;
+      renderProgress(cached);
+    }
+    return;
+  }
+
   showWcLoading_("読み込み中…");
   try{
+    const items = cacheView==="candidates"
+      ? await apiGet("candidates",p)
+      : await apiGet("progress",p);
 
-      if($("appPanel").hidden)return;
-      const requestId=++loadRequestId;
-      setStatus("");$("cards").innerHTML="";
-      try{
-        const p={q:$("searchInput").value,staff:$("staffFilter").value};
-        let items;
-        if(state.view==="matching"){
-          setStatus("");
-          $("cards").innerHTML="";
-          if(matchingMode==="candidate")await loadMatchingCandidatesOnce();
-          else await loadMatchingJobsOnce();
-          return;
-        }else if(state.view==="home"){
-          items=await apiGet("today");
-          if(requestId!==loadRequestId)return;
-          state.today=items;renderToday(items);
-        }else if(state.view==="candidates"){
-          p.region=$("regionFilter").value;
-          p.experienceType=$("experienceFilter").value;
-          p.careerType=$("careerFilter").value;
-          items=await apiGet("candidates",p);
-          if(requestId!==loadRequestId)return;
-          state.candidates=items;renderCandidates(items);
-        }else{
-          items=await apiGet("progress",p);
-          if(requestId!==loadRequestId)return;
-          state.progress=items;renderProgress(items);
-        }
-      }catch(e){if(requestId===loadRequestId)showError(e)}
+    if(requestId!==loadRequestId) return;
+
+    wcViewCachePut_(cacheView,p,items);
+
+    if(cacheView==="candidates"){
+      state.candidates=items;
+      renderCandidates(items);
+    }else{
+      state.progress=items;
+      renderProgress(items);
+    }
+  }catch(e){
+    if(requestId===loadRequestId) showError(e);
   }finally{
     await hideWcLoading_();
   }
@@ -513,6 +582,7 @@ function buildProgressForm(x){
 }
 
 async function saveEdit(e){
+  wcViewCacheClear_();
   e.preventDefault();setMsg("modalMessage","保存中...");showWcLoading_("保存中…");
   try{
     if(state.selected.type==="candidate"){
