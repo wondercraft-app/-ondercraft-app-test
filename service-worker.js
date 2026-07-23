@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-14-score-final";
+const CACHE="wondercraft-wc-7-15-integrated";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.14.0",
-  "./config.js?v=7.14.0-score-final",
-  "./app.js?v=7.14.0-score-final",
+  "./style.css?v=7.15.0",
+  "./config.js?v=7.15.0-integrated",
+  "./app.js?v=7.15.0-integrated",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

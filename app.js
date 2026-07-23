@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.14 NAVITIME Score Final - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.15 Staff Mapping + Spot Filter - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -9,7 +9,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.14 NAVITIME Score Final";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.15 Staff Mapping + Spot Filter";
   initialize();
 });
 
