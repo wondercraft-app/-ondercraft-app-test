@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-20-auto-update";
+const CACHE="wondercraft-wc-7-22-center-loader";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.20.0",
-  "./config.js?v=7.20.0-auto-update",
-  "./app.js?v=7.20.0-auto-update",
+  "./style.css?v=7.22.0",
+  "./config.js?v=7.22.0-center-loader",
+  "./app.js?v=7.22.0-center-loader",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

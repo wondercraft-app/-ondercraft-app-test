@@ -1,16 +1,21 @@
-/* WonderCraft PWA WC-7.20 Auto Update + Skill URL Fix - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.22 Center WC Loader - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
 let debounceTimer;
 let loadRequestId=0;
 
-window.addEventListener("load",()=>{
+window.addEventListener("load",async()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.20 Auto Update + Skill URL Fix";
-  initialize();
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.22 Center WC Loader";
+  showWcLoading_("読み込み中…");
+  try{
+    await initialize();
+  }finally{
+    hideWcLoading_(true);
+  }
 });
 
 
@@ -19,40 +24,38 @@ let wcSwRefreshing = false;
 
 async function handleManualReload(){
   if(wcReloading) return;
-
   const btn = $("reloadBtn");
   wcReloading = true;
-
   if(btn){
     btn.disabled = true;
     btn.classList.add("is-loading");
+    btn.textContent = "↻";
     btn.setAttribute("aria-label","更新中");
     btn.title = "更新中…";
   }
-
+  showWcLoading_("更新中…");
   setStatus("更新中…");
-
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   try{
     if("serviceWorker" in navigator){
       const reg = await navigator.serviceWorker.getRegistration();
-      if(reg) await reg.update();
+      if(reg){ try{ await reg.update(); }catch(_e){} }
     }
-
     await initialize(true);
-
     setStatus("最新情報に更新しました。");
   }catch(err){
     setStatus("更新に失敗しました。もう一度お試しください。");
     console.error("manual reload failed", err);
   }finally{
-    wcReloading = false;
-
+    hideWcLoading_(true);
     if(btn){
       btn.disabled = false;
       btn.classList.remove("is-loading");
+      btn.textContent = "↻";
       btn.setAttribute("aria-label","再読み込み");
       btn.title = "再読み込み";
     }
+    wcReloading = false;
   }
 }
 
@@ -95,8 +98,29 @@ async function registerWonderCraftServiceWorker_(){
   }
 }
 
+
+let wcLoadingDepth = 0;
+function showWcLoading_(message){
+  const overlay = $("wcLoadingOverlay");
+  const text = $("wcLoadingText");
+  wcLoadingDepth++;
+  if(text) text.textContent = message || "読み込み中…";
+  if(overlay){ overlay.hidden = false; overlay.setAttribute("aria-busy","true"); }
+}
+function updateWcLoadingText_(message){
+  const text = $("wcLoadingText");
+  if(text) text.textContent = message || "読み込み中…";
+}
+function hideWcLoading_(force=false){
+  if(force) wcLoadingDepth = 0;
+  else wcLoadingDepth = Math.max(0, wcLoadingDepth - 1);
+  if(wcLoadingDepth > 0 && !force) return;
+  const overlay = $("wcLoadingOverlay");
+  if(overlay){ overlay.hidden = true; overlay.setAttribute("aria-busy","false"); }
+}
+
 function bindEvents(){
-  $("systemRetryBtn").onclick=()=>initialize(true);
+  $("systemRetryBtn").onclick=async()=>{showWcLoading_("再接続中…");try{await initialize(true)}finally{hideWcLoading_(true)}};
   $("loginForm").onsubmit=handleLogin;
   $("logoutBtn").onclick=logout;
   $("forgotPasswordBtn").onclick=()=>showLoginMessage("パスワード再発行申請は次の段階で追加します。現在は自社担当者へご連絡ください。",false);
@@ -522,7 +546,7 @@ async function submitPartnerRegistration(){
 }
 
 async function loadPartnerRequests(){
-  setRequestPanelVisible_("partnerRequestsList", true);
+  setRequestPanelVisible_("partnerRequestsList", false);
   if(!state.user || !["admin","staff"].includes(state.user.role)) return;
   const panel=document.getElementById("partnerApprovalPanel");
   const list=document.getElementById("partnerRequestsList");
@@ -551,7 +575,7 @@ async function loadPartnerRequests(){
         </div>`:""}
       </div>`).join("");
   }catch(err){
-    setRequestPanelVisible_("partnerRequestsList", true);
+    setRequestPanelVisible_("partnerRequestsList", false);
     list.innerHTML='<div class="empty">申請一覧を取得できませんでした。</div>';
   }
 }
@@ -677,17 +701,26 @@ function showPartnerTab(tab){
 
 
 function setRequestPanelVisible_(listId, visible){
-  const list = document.getElementById(listId);
-  if(!list) return;
+  const panelId =
+    listId === "partnerRequestsList"
+      ? "partnerRequestsPanel"
+      : listId === "skillRequestsList"
+        ? "skillRequestsPanel"
+        : "";
 
-  const panel = list.closest(".approval-panel");
+  const panel =
+    panelId
+      ? document.getElementById(panelId)
+      : null;
+
   if(!panel) return;
 
+  panel.hidden = !visible;
   panel.style.display = visible ? "" : "none";
 }
 
 async function loadSkillSheetRequests(){
-  setRequestPanelVisible_("skillRequestsList", true);
+  setRequestPanelVisible_("skillRequestsList", false);
   if(!state.user||!["admin","staff"].includes(state.user.role))return;
   const list=$("skillRequestsList"); if(!list)return;
   list.innerHTML='<div class="empty">読み込み中...</div>';
@@ -711,7 +744,7 @@ async function loadSkillSheetRequests(){
       </div>`:(r.status==="承認済み"&&r.skillSheetUrl?`<a class="secondary link-button" href="${esc(r.skillSheetUrl)}" target="_blank" rel="noopener">確認</a>`:"")}
     </div>`).join("");
   }catch(err){
-    setRequestPanelVisible_("skillRequestsList", true);
+    setRequestPanelVisible_("skillRequestsList", false);
     list.innerHTML='<div class="empty">申請一覧を取得できませんでした。</div>';
   }
 }

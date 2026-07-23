@@ -107,7 +107,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <img src="./assets/icon-192.png" alt="WC">
       <div>
         <small>WonderCraft</small>
-        <div class="title-row"><strong>人材管理</strong><span id="appVersion" class="app-version">WC-7.20 Auto Update + Skill URL Fix</span></div>
+        <div class="title-row"><strong>人材管理</strong><span id="appVersion" class="app-version">WC-7.22 Center WC Loader</span></div>
       </div>
     </div>
     <div class="top-actions"><span id="currentUserName" class="current-user" hidden></span><button id="logoutBtn" class="icon-btn logout-btn" type="button" aria-label="ログアウト" title="ログアウト" hidden>退出</button><button id="reloadBtn" class="icon-btn" type="button" aria-label="再読み込み">↻</button></div>
@@ -152,11 +152,11 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     <section id="appPanel" hidden>
       
       <section id="internalApprovalArea" class="approval-area" hidden>
-        <section class="approval-panel">
+        <section class="approval-panel" id="partnerRequestsPanel" hidden>
           <div class="approval-head"><div><p class="eyebrow">APPROVAL</p><h2>他企業 登録申請</h2></div><button id="reloadPartnerRequestsBtn" class="secondary" type="button">更新</button></div>
           <div id="partnerRequestsList"></div>
         </section>
-        <section class="approval-panel">
+        <section class="approval-panel" id="skillRequestsPanel" hidden>
           <div class="approval-head"><div><p class="eyebrow">SKILL SHEET</p><h2>スキルシート申請</h2></div><button id="reloadSkillRequestsBtn" class="secondary" type="button">更新</button></div>
           <div id="skillRequestsList"></div>
         </section>
@@ -293,7 +293,17 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     </button>
   </nav>
 
-  <script src="./config.js?v=7.20.0-auto-update"></script>
-  <script src="./app.js?v=7.20.0-auto-update"></script>
+  <script src="./config.js?v=7.22.0-center-loader"></script>
+  <script src="./app.js?v=7.22.0-center-loader"></script>
+
+  <div id="wcLoadingOverlay" class="wc-loading-overlay" hidden aria-live="polite" aria-busy="true">
+    <div class="wc-loading-box">
+      <div class="wc-loading-logo" aria-hidden="true">
+        <span class="wc-loading-w">W</span><span class="wc-loading-c">C</span>
+      </div>
+      <div id="wcLoadingText" class="wc-loading-text">読み込み中…</div>
+    </div>
+  </div>
+
 </body>
 </html>
