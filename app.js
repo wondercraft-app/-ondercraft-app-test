@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.24 Center Loader CSS Fix - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.25 Unified Loading - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -11,7 +11,7 @@ window.addEventListener("load",async()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.24 Center Loader CSS Fix";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.25 Unified Loading";
   updateWcLoadingText_("読み込み中…");
   try{
     await initialize();
@@ -167,8 +167,8 @@ function bindEvents(){
   $("matchingJobSearch")?.addEventListener("input",e=>renderMatchingJobOptions(e.target.value));
   $("showPartnerRegisterBtn")?.addEventListener("click",()=>{const box=$("partnerRegisterBox");if(box)box.hidden=!box.hidden;});
   $("partnerRegisterBtn")?.addEventListener("click",submitPartnerRegistration);
-  $("reloadPartnerRequestsBtn")?.addEventListener("click",loadPartnerRequests);
-  $("reloadSkillRequestsBtn")?.addEventListener("click",loadSkillSheetRequests);
+  $("reloadPartnerRequestsBtn")?.addEventListener("click",async()=>{showWcLoading_("読み込み中…");try{await loadPartnerRequests()}finally{await hideWcLoading_()}});
+  $("reloadSkillRequestsBtn")?.addEventListener("click",async()=>{showWcLoading_("読み込み中…");try{await loadSkillSheetRequests()}finally{await hideWcLoading_()}});
   $("reloadPartnerPortalBtn")?.addEventListener("click",reloadPartnerPortal);
   $("partnerCandidatesTab")?.addEventListener("click",()=>showPartnerTab("candidates"));
   $("partnerRequestsTab")?.addEventListener("click",()=>showPartnerTab("requests"));
@@ -374,35 +374,41 @@ function applyViewState(){
 }
 
 async function loadCurrent(){
-  if($("appPanel").hidden)return;
-  const requestId=++loadRequestId;
-  showLoading();
+  showWcLoading_("読み込み中…");
   try{
-    const p={q:$("searchInput").value,staff:$("staffFilter").value};
-    let items;
-    if(state.view==="matching"){
-      setStatus("");
-      $("cards").innerHTML="";
-      if(matchingMode==="candidate")await loadMatchingCandidatesOnce();
-      else await loadMatchingJobsOnce();
-      return;
-    }else if(state.view==="home"){
-      items=await apiGet("today");
-      if(requestId!==loadRequestId)return;
-      state.today=items;renderToday(items);
-    }else if(state.view==="candidates"){
-      p.region=$("regionFilter").value;
-      p.experienceType=$("experienceFilter").value;
-      p.careerType=$("careerFilter").value;
-      items=await apiGet("candidates",p);
-      if(requestId!==loadRequestId)return;
-      state.candidates=items;renderCandidates(items);
-    }else{
-      items=await apiGet("progress",p);
-      if(requestId!==loadRequestId)return;
-      state.progress=items;renderProgress(items);
-    }
-  }catch(e){if(requestId===loadRequestId)showError(e)}
+
+      if($("appPanel").hidden)return;
+      const requestId=++loadRequestId;
+      showLoading();
+      try{
+        const p={q:$("searchInput").value,staff:$("staffFilter").value};
+        let items;
+        if(state.view==="matching"){
+          setStatus("");
+          $("cards").innerHTML="";
+          if(matchingMode==="candidate")await loadMatchingCandidatesOnce();
+          else await loadMatchingJobsOnce();
+          return;
+        }else if(state.view==="home"){
+          items=await apiGet("today");
+          if(requestId!==loadRequestId)return;
+          state.today=items;renderToday(items);
+        }else if(state.view==="candidates"){
+          p.region=$("regionFilter").value;
+          p.experienceType=$("experienceFilter").value;
+          p.careerType=$("careerFilter").value;
+          items=await apiGet("candidates",p);
+          if(requestId!==loadRequestId)return;
+          state.candidates=items;renderCandidates(items);
+        }else{
+          items=await apiGet("progress",p);
+          if(requestId!==loadRequestId)return;
+          state.progress=items;renderProgress(items);
+        }
+      }catch(e){if(requestId===loadRequestId)showError(e)}
+  }finally{
+    await hideWcLoading_();
+  }
 }
 
 function renderCandidates(items){
@@ -507,7 +513,7 @@ function buildProgressForm(x){
 }
 
 async function saveEdit(e){
-  e.preventDefault();setMsg("modalMessage","保存中...");
+  e.preventDefault();setMsg("modalMessage","保存中...");showWcLoading_("保存中…");
   try{
     if(state.selected.type==="candidate"){
       const x=state.selected.item;
@@ -520,7 +526,7 @@ async function saveEdit(e){
     closeModal();
     await Promise.allSettled([loadDashboard(), loadCurrent()]);
     setStatus("保存しました。");
-  }catch(err){setMsg("modalMessage",err.message,"error")}
+  }catch(err){setMsg("modalMessage",err.message,"error")}finally{await hideWcLoading_();}
 }
 
 function updateSkillSheetButton(){const btn=$("openSkillSheetBtn");if(!btn)return;btn.hidden=!isSafeSkillSheetUrl(v("fSkillSheetUrl"))}
@@ -529,7 +535,7 @@ function openSkillSheet(){const url=v("fSkillSheetUrl");if(!isSafeSkillSheetUrl(
 function v(id){return $(id)?.value||""}
 function openModal(){$("modal").hidden=false;document.body.style.overflow="hidden";setMsg("modalMessage","")}
 function closeModal(){$("modal").hidden=true;document.body.style.overflow=""}
-function showLoading(){setStatus("");$("cards").innerHTML='<div class="loading">読み込み中です...</div>'}
+function showLoading(){setStatus("");showWcLoading_("読み込み中…");$("cards").innerHTML=""}
 function showEmpty(t="該当するデータはありません。"){$("cards").innerHTML=`<div class="empty">${esc(t)}</div>`}
 function showError(e){$("cards").innerHTML=`<div class="error">${esc(e.message||String(e))}</div>`}
 function setStatus(t){const el=$("status");if(el)el.textContent=t||""}
@@ -851,37 +857,43 @@ async function setMatchingMode(mode){
 }
 
 async function runCandidateMatching(){
-  if(matchingMode==="job")return runJobMatching();
-  const raw=$("matchingCandidateSelect")?.value??"";
-  if(raw===""){showToast("求職者を選択してください。","error");return;}
-  const c=matchingCandidateItems[Number(raw)];
-  if(!c){showToast("求職者の選択情報が正しくありません。","error");return;}
-  const results=$("matchingResults"),summary=$("matchingSummary");
-  results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
+  showWcLoading_("マッチング中…");
   try{
-    const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
-    summary.textContent=`${data.candidate.name}さん｜全${data.totalJobs}件 → 条件絞込${data.filteredJobs ?? data.totalJobs}件 → 重複整理${data.dedupedJobs ?? data.filteredJobs ?? data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
-    renderJobMatchResults(data.results||[]);
-  }catch(err){
-    const message=err?.message||"マッチングに失敗しました。";
-    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
-  }
-}
 
-async function runJobMatching(){
-  const raw=$("matchingJobSelect")?.value??"";
-  if(raw===""){showToast("案件を選択してください。","error");return;}
-  const job=matchingJobItems[Number(raw)];
-  if(!job){showToast("案件の選択情報が正しくありません。","error");return;}
-  const results=$("matchingResults"),summary=$("matchingSummary");
-  results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
-  try{
-    const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
-    summary.textContent=`${data.job.shopName||"選択案件"}｜求職者${data.totalCandidates}名 → 条件絞込${data.filteredCandidates ?? data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
-    renderCandidateMatchResults(data.results||[]);
-  }catch(err){
-    const message=err?.message||"マッチングに失敗しました。";
-    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
+      if(matchingMode==="job")return runJobMatching();
+      const raw=$("matchingCandidateSelect")?.value??"";
+      if(raw===""){showToast("求職者を選択してください。","error");return;}
+      const c=matchingCandidateItems[Number(raw)];
+      if(!c){showToast("求職者の選択情報が正しくありません。","error");return;}
+      const results=$("matchingResults"),summary=$("matchingSummary");
+      results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
+      try{
+        const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
+        summary.textContent=`${data.candidate.name}さん｜全${data.totalJobs}件 → 条件絞込${data.filteredJobs ?? data.totalJobs}件 → 重複整理${data.dedupedJobs ?? data.filteredJobs ?? data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
+        renderJobMatchResults(data.results||[]);
+      }catch(err){
+        const message=err?.message||"マッチングに失敗しました。";
+        results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
+      }
+    }
+
+    async function runJobMatching(){
+      const raw=$("matchingJobSelect")?.value??"";
+      if(raw===""){showToast("案件を選択してください。","error");return;}
+      const job=matchingJobItems[Number(raw)];
+      if(!job){showToast("案件の選択情報が正しくありません。","error");return;}
+      const results=$("matchingResults"),summary=$("matchingSummary");
+      results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
+      try{
+        const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
+        summary.textContent=`${data.job.shopName||"選択案件"}｜求職者${data.totalCandidates}名 → 条件絞込${data.filteredCandidates ?? data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
+        renderCandidateMatchResults(data.results||[]);
+      }catch(err){
+        const message=err?.message||"マッチングに失敗しました。";
+        results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
+      }
+  }finally{
+    await hideWcLoading_();
   }
 }
 
