@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-25-unified-loading";
+const CACHE="wondercraft-wc-7-26-stable-loader";
 const FILES=[
   "./",
   "./index.html",
   "./style.css?v=7.23.0",
-  "./config.js?v=7.25.0-unified-loading",
-  "./app.js?v=7.25.0-unified-loading",
+  "./config.js?v=7.26.0-stable-loader",
+  "./app.js?v=7.26.0-stable-loader",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

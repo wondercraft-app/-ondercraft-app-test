@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.25 Unified Loading - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.26 Stable Unified Loader - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -11,7 +11,7 @@ window.addEventListener("load",async()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.25 Unified Loading";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.26 Stable Unified Loader";
   updateWcLoadingText_("読み込み中…");
   try{
     await initialize();
@@ -379,7 +379,7 @@ async function loadCurrent(){
 
       if($("appPanel").hidden)return;
       const requestId=++loadRequestId;
-      showLoading();
+      setStatus("");$("cards").innerHTML="";
       try{
         const p={q:$("searchInput").value,staff:$("staffFilter").value};
         let items;
@@ -535,7 +535,7 @@ function openSkillSheet(){const url=v("fSkillSheetUrl");if(!isSafeSkillSheetUrl(
 function v(id){return $(id)?.value||""}
 function openModal(){$("modal").hidden=false;document.body.style.overflow="hidden";setMsg("modalMessage","")}
 function closeModal(){$("modal").hidden=true;document.body.style.overflow=""}
-function showLoading(){setStatus("");showWcLoading_("読み込み中…");$("cards").innerHTML=""}
+function showLoading(){setStatus("");$("cards").innerHTML='<div class="loading">読み込み中です...</div>'}
 function showEmpty(t="該当するデータはありません。"){$("cards").innerHTML=`<div class="empty">${esc(t)}</div>`}
 function showError(e){$("cards").innerHTML=`<div class="error">${esc(e.message||String(e))}</div>`}
 function setStatus(t){const el=$("status");if(el)el.textContent=t||""}
@@ -858,43 +858,41 @@ async function setMatchingMode(mode){
 
 async function runCandidateMatching(){
   showWcLoading_("マッチング中…");
+  if(matchingMode==="job")return runJobMatching();
+  const raw=$("matchingCandidateSelect")?.value??"";
+  if(raw===""){showToast("求職者を選択してください。","error");return;}
+  const c=matchingCandidateItems[Number(raw)];
+  if(!c){showToast("求職者の選択情報が正しくありません。","error");return;}
+  const results=$("matchingResults"),summary=$("matchingSummary");
+  results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
   try{
-
-      if(matchingMode==="job")return runJobMatching();
-      const raw=$("matchingCandidateSelect")?.value??"";
-      if(raw===""){showToast("求職者を選択してください。","error");return;}
-      const c=matchingCandidateItems[Number(raw)];
-      if(!c){showToast("求職者の選択情報が正しくありません。","error");return;}
-      const results=$("matchingResults"),summary=$("matchingSummary");
-      results.innerHTML='<div class="loading">案件を比較中...</div>'; summary.textContent="";
-      try{
-        const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
-        summary.textContent=`${data.candidate.name}さん｜全${data.totalJobs}件 → 条件絞込${data.filteredJobs ?? data.totalJobs}件 → 重複整理${data.dedupedJobs ?? data.filteredJobs ?? data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
-        renderJobMatchResults(data.results||[]);
-      }catch(err){
-        const message=err?.message||"マッチングに失敗しました。";
-        results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
-      }
-    }
-
-    async function runJobMatching(){
-      const raw=$("matchingJobSelect")?.value??"";
-      if(raw===""){showToast("案件を選択してください。","error");return;}
-      const job=matchingJobItems[Number(raw)];
-      if(!job){showToast("案件の選択情報が正しくありません。","error");return;}
-      const results=$("matchingResults"),summary=$("matchingSummary");
-      results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
-      try{
-        const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
-        summary.textContent=`${data.job.shopName||"選択案件"}｜求職者${data.totalCandidates}名 → 条件絞込${data.filteredCandidates ?? data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
-        renderCandidateMatchResults(data.results||[]);
-      }catch(err){
-        const message=err?.message||"マッチングに失敗しました。";
-        results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
-      }
-  }finally{
-    await hideWcLoading_();
+    const data=await apiPost("candidateJobMatches",{sheetName:c.sheetName,rowNumber:c.rowNumber});
+    summary.textContent=`${data.candidate.name}さん｜全${data.totalJobs}件 → 条件絞込${data.filteredJobs ?? data.totalJobs}件 → 重複整理${data.dedupedJobs ?? data.filteredJobs ?? data.totalJobs}件｜おすすめ上位${(data.results||[]).length}件`;
+    renderJobMatchResults(data.results||[]);
+  }catch(err){
+    const message=err?.message||"マッチングに失敗しました。";
+    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
   }
+  await hideWcLoading_();
+}
+
+async function runJobMatching(){
+  showWcLoading_("マッチング中…");
+  const raw=$("matchingJobSelect")?.value??"";
+  if(raw===""){showToast("案件を選択してください。","error");return;}
+  const job=matchingJobItems[Number(raw)];
+  if(!job){showToast("案件の選択情報が正しくありません。","error");return;}
+  const results=$("matchingResults"),summary=$("matchingSummary");
+  results.innerHTML='<div class="loading">求職者を比較中...</div>'; summary.textContent="";
+  try{
+    const data=await apiPost("jobCandidateMatches",{rowNumber:job.rowNumber});
+    summary.textContent=`${data.job.shopName||"選択案件"}｜求職者${data.totalCandidates}名 → 条件絞込${data.filteredCandidates ?? data.totalCandidates}名｜おすすめ上位${(data.results||[]).length}名`;
+    renderCandidateMatchResults(data.results||[]);
+  }catch(err){
+    const message=err?.message||"マッチングに失敗しました。";
+    results.innerHTML=`<div class="error">${esc(message)}</div>`; summary.textContent=message;
+  }
+  await hideWcLoading_();
 }
 
 function matchBadges(x){
