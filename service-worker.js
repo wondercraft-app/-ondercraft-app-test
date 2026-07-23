@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-19-request-exact";
+const CACHE="wondercraft-wc-7-20-auto-update";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.19.0",
-  "./config.js?v=7.19.0-request-exact",
-  "./app.js?v=7.19.0-request-exact",
+  "./style.css?v=7.20.0",
+  "./config.js?v=7.20.0-auto-update",
+  "./app.js?v=7.20.0-auto-update",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",
@@ -23,9 +23,25 @@ self.addEventListener("activate",event=>{
 });
 
 self.addEventListener("fetch",event=>{
-  if(event.request.method!=="GET")return;
+  if(event.request.method!=="GET") return;
+
+  const isNavigation = event.request.mode === "navigate";
+
+  if(isNavigation){
+    event.respondWith(
+      fetch(event.request,{cache:"no-store"})
+        .then(response=>{
+          const copy=response.clone();
+          caches.open(CACHE).then(cache=>cache.put("./index.html",copy));
+          return response;
+        })
+        .catch(()=>caches.match("./index.html").then(cached=>cached||caches.match("./offline.html")))
+    );
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request,{cache:"no-store"})
       .then(response=>{
         const copy=response.clone();
         caches.open(CACHE).then(cache=>cache.put(event.request,copy));
@@ -33,4 +49,11 @@ self.addEventListener("fetch",event=>{
       })
       .catch(()=>caches.match(event.request).then(cached=>cached||caches.match("./offline.html")))
   );
+});
+
+
+self.addEventListener("message", event => {
+  if(event.data && event.data.type === "SKIP_WAITING"){
+    self.skipWaiting();
+  }
 });

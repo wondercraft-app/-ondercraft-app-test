@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.19 Exact Empty Request Hide - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.20 Auto Update + Skill URL Fix - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -7,18 +7,100 @@ let loadRequestId=0;
 
 window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
-  if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+  registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.19 Exact Empty Request Hide";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.20 Auto Update + Skill URL Fix";
   initialize();
 });
+
+
+let wcReloading = false;
+let wcSwRefreshing = false;
+
+async function handleManualReload(){
+  if(wcReloading) return;
+
+  const btn = $("reloadBtn");
+  wcReloading = true;
+
+  if(btn){
+    btn.disabled = true;
+    btn.classList.add("is-loading");
+    btn.setAttribute("aria-label","更新中");
+    btn.title = "更新中…";
+  }
+
+  setStatus("更新中…");
+
+  try{
+    if("serviceWorker" in navigator){
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg) await reg.update();
+    }
+
+    await initialize(true);
+
+    setStatus("最新情報に更新しました。");
+  }catch(err){
+    setStatus("更新に失敗しました。もう一度お試しください。");
+    console.error("manual reload failed", err);
+  }finally{
+    wcReloading = false;
+
+    if(btn){
+      btn.disabled = false;
+      btn.classList.remove("is-loading");
+      btn.setAttribute("aria-label","再読み込み");
+      btn.title = "再読み込み";
+    }
+  }
+}
+
+async function registerWonderCraftServiceWorker_(){
+  if(!("serviceWorker" in navigator)) return;
+
+  try{
+    const reg = await navigator.serviceWorker.register(
+      "./service-worker.js",
+      { updateViaCache:"none" }
+    );
+
+    await reg.update();
+
+    if(reg.waiting){
+      reg.waiting.postMessage({type:"SKIP_WAITING"});
+    }
+
+    reg.addEventListener("updatefound",()=>{
+      const worker = reg.installing;
+      if(!worker) return;
+
+      worker.addEventListener("statechange",()=>{
+        if(
+          worker.state === "installed" &&
+          navigator.serviceWorker.controller
+        ){
+          worker.postMessage({type:"SKIP_WAITING"});
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(wcSwRefreshing) return;
+      wcSwRefreshing = true;
+      window.location.reload();
+    });
+  }catch(err){
+    console.error("service worker update failed", err);
+  }
+}
 
 function bindEvents(){
   $("systemRetryBtn").onclick=()=>initialize(true);
   $("loginForm").onsubmit=handleLogin;
   $("logoutBtn").onclick=logout;
   $("forgotPasswordBtn").onclick=()=>showLoginMessage("パスワード再発行申請は次の段階で追加します。現在は自社担当者へご連絡ください。",false);
-  $("reloadBtn").onclick=()=>initialize(true);
+  $("reloadBtn").onclick=handleManualReload;
   $("searchInput").addEventListener("input",()=>{clearTimeout(debounceTimer);debounceTimer=setTimeout(loadCurrent,350)});
   $("staffFilter").onchange=loadCurrent;
   $("regionFilter").onchange=loadCurrent;
@@ -27,7 +109,6 @@ function bindEvents(){
   document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>switchView(b.dataset.view));
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModal);
   $("editForm").onsubmit=saveEdit;
-  $("copyProposalBtn").onclick=copyProposal;
   $("openSkillSheetBtn").onclick=openSkillSheet;
   $("runMatchingBtn")?.addEventListener("click",runCandidateMatching);
   $("matchModeCandidateBtn")?.addEventListener("click",()=>setMatchingMode("candidate"));
@@ -317,8 +398,8 @@ function normalizeInterviewTime(value){
 }
 
 function rows(arr){return arr.map(([a,b])=>`<div class="label">${esc(a)}</div><div>${esc(b||"")}</div>`).join("")}
-function openCandidate(i){state.selected={type:"candidate",item:state.candidates[i]};$("modalTitle").textContent="求職者を編集";$("copyProposalBtn").hidden=false;buildCandidateForm(state.selected.item);updateSkillSheetButton();openModal()}
-function openProgress(i){state.selected={type:"progress",item:state.progress[i]};$("modalTitle").textContent="案件進捗を編集";$("copyProposalBtn").hidden=true;$("openSkillSheetBtn").hidden=true;buildProgressForm(state.selected.item);openModal()}
+function openCandidate(i){state.selected={type:"candidate",item:state.candidates[i]};$("modalTitle").textContent="求職者を編集";buildCandidateForm(state.selected.item);updateSkillSheetButton();openModal()}
+function openProgress(i){state.selected={type:"progress",item:state.progress[i]};$("modalTitle").textContent="案件進捗を編集";$("openSkillSheetBtn").hidden=true;buildProgressForm(state.selected.item);openModal()}
 
 function field(id,label,value,type="text",options=null,full=false){
   const cls=full?' class="full"':"";
@@ -391,12 +472,6 @@ async function saveEdit(e){
   }catch(err){setMsg("modalMessage",err.message,"error")}
 }
 
-async function copyProposal(){try{const p={station:v("fStation"),prefecture:v("fPref"),career:selectedCareerValue(),experience:v("fExp"),remarks:v("fRemarks"),startDate:v("fStart"),price:v("fPrice")};const text=await apiPost("proposalText",p);await copyText(text);setMsg("modalMessage","紹介文をコピーしました。","success")}catch(e){setMsg("modalMessage",e.message,"error")}}
-async function copyText(text){
-  if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return}
-  const area=document.createElement("textarea");area.value=text;area.setAttribute("readonly","");area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();
-  const ok=document.execCommand("copy");area.remove();if(!ok)throw new Error("コピーできませんでした。文章を長押ししてコピーしてください。");
-}
 function updateSkillSheetButton(){const btn=$("openSkillSheetBtn");if(!btn)return;btn.hidden=!isSafeSkillSheetUrl(v("fSkillSheetUrl"))}
 function isSafeSkillSheetUrl(value){try{const url=new URL(String(value||"").trim());return url.protocol==="https:"&&(url.hostname==="drive.google.com"||url.hostname==="docs.google.com")}catch(_){return false}}
 function openSkillSheet(){const url=v("fSkillSheetUrl");if(!isSafeSkillSheetUrl(url)){setMsg("modalMessage","Google DriveまたはGoogleドキュメントのURLを入力してください。","error");return}window.open(url,"_blank","noopener,noreferrer")}
