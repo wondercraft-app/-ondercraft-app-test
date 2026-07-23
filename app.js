@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.23 Rotating WC Loader - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.24 Center Loader CSS Fix - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -11,7 +11,7 @@ window.addEventListener("load",async()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   registerWonderCraftServiceWorker_();
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.23 Rotating WC Loader";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.24 Center Loader CSS Fix";
   updateWcLoadingText_("読み込み中…");
   try{
     await initialize();

@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-23-rotating-wc";
+const CACHE="wondercraft-wc-7-24-loader-fix";
 const FILES=[
   "./",
   "./index.html",
   "./style.css?v=7.23.0",
-  "./config.js?v=7.23.0-rotating-wc",
-  "./app.js?v=7.23.0-rotating-wc",
+  "./config.js?v=7.24.0-loader-fix",
+  "./app.js?v=7.24.0-loader-fix",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

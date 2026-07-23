@@ -93,6 +93,68 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
 .matching-summary{line-height:1.7}
 .match-filter-note{font-size:12px;color:var(--muted);margin-top:4px}
 
+
+
+/* WC-7.24 Center WC Loader - inline for guaranteed loading */
+.wc-loading-overlay{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:grid;
+  place-items:center;
+  background:rgba(248,250,252,.92);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.wc-loading-overlay[hidden]{display:none!important}
+.wc-loading-box{
+  display:grid;
+  place-items:center;
+  gap:14px;
+  padding:22px 26px;
+  min-width:150px;
+}
+.wc-loading-logo{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  box-shadow:0 8px 24px rgba(15,23,42,.14),inset 0 0 0 1px rgba(15,23,42,.08);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-weight:900;
+  font-size:25px;
+  letter-spacing:-3px;
+  animation:wcWholeLogoSpin .9s linear infinite;
+  will-change:transform;
+}
+.wc-loading-logo::before{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border-radius:50%;
+  border:3px solid transparent;
+  border-top-color:#111;
+  border-left-color:#111;
+  border-right-color:#2563eb;
+  border-bottom-color:#2563eb;
+}
+.wc-loading-w{color:#111;transform:translateX(1px)}
+.wc-loading-c{color:#2563eb;transform:translateX(-1px)}
+.wc-loading-text{
+  color:#334155;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+@keyframes wcWholeLogoSpin{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+
 </style>
 </head>
 <body>
@@ -107,7 +169,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <img src="./assets/icon-192.png" alt="WC">
       <div>
         <small>WonderCraft</small>
-        <div class="title-row"><strong>人材管理</strong><span id="appVersion" class="app-version">WC-7.23 Rotating WC Loader</span></div>
+        <div class="title-row"><strong>人材管理</strong><span id="appVersion" class="app-version">WC-7.24 Center Loader CSS Fix</span></div>
       </div>
     </div>
     <div class="top-actions"><span id="currentUserName" class="current-user" hidden></span><button id="logoutBtn" class="icon-btn logout-btn" type="button" aria-label="ログアウト" title="ログアウト" hidden>退出</button><button id="reloadBtn" class="icon-btn" type="button" aria-label="再読み込み">↻</button></div>
@@ -293,8 +355,8 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     </button>
   </nav>
 
-  <script src="./config.js?v=7.23.0-rotating-wc"></script>
-  <script src="./app.js?v=7.23.0-rotating-wc"></script>
+  <script src="./config.js?v=7.24.0-loader-fix"></script>
+  <script src="./app.js?v=7.24.0-loader-fix"></script>
 
   <div id="wcLoadingOverlay" class="wc-loading-overlay" aria-live="polite" aria-busy="true">
     <div class="wc-loading-box">
