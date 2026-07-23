@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-15-integrated";
+const CACHE="wondercraft-wc-7-17-ui";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.15.0",
-  "./config.js?v=7.15.0-integrated",
-  "./app.js?v=7.15.0-integrated",
+  "./style.css?v=7.17.0",
+  "./config.js?v=7.17.0-ui",
+  "./app.js?v=7.17.0-ui",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",

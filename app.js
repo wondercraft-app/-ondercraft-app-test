@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.15 Staff Mapping + Spot Filter - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.17 Mobile UI + Empty Request Hide - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -9,7 +9,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>$('splash')?.remove(),450)},900);
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   bindEvents();
-  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.15 Staff Mapping + Spot Filter";
+  if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.17 Mobile UI + Empty Request Hide";
   initialize();
 });
 
@@ -761,3 +761,90 @@ function renderCandidateMatchResults(items){
     ])}</div>${x.remarks?`<div class="remarks">${esc(x.remarks)}</div>`:""}
   </article>`).join("");
 }
+
+
+
+function updateHomeRequestPanelsVisibility_(){
+  try{
+    const all = Array.from(document.querySelectorAll("section, .card, .panel, .home-card, div"));
+    const seen = new Set();
+
+    all.forEach(el=>{
+      if(seen.has(el)) return;
+
+      const text = String(el.innerText || "").replace(/\s+/g," ").trim();
+      if(!text) return;
+
+      const isApproval =
+        text.includes("他企業 登録申請") ||
+        text.includes("APPROVAL");
+
+      const isSkill =
+        text.includes("スキルシート申請") ||
+        text.includes("SKILL SHEET");
+
+      if(!isApproval && !isSkill) return;
+
+      const noApproval =
+        text.includes("登録申請はありません") ||
+        text.includes("申請はありません");
+
+      const noSkill =
+        text.includes("スキルシート申請はありません");
+
+      if(
+        (isApproval && noApproval) ||
+        (isSkill && noSkill)
+      ){
+        // Hide the nearest substantial card/container.
+        let target = el;
+        for(let i=0;i<4 && target.parentElement;i++){
+          const parent = target.parentElement;
+          const pText = String(parent.innerText || "").replace(/\s+/g," ").trim();
+          if(
+            pText.length < 500 &&
+            (
+              pText.includes("他企業 登録申請") ||
+              pText.includes("スキルシート申請")
+            )
+          ){
+            target = parent;
+          }else{
+            break;
+          }
+        }
+        target.style.display = "none";
+        target.dataset.wcAutoHiddenEmptyRequest = "1";
+        seen.add(target);
+      }else{
+        // If this block has actual requests, keep it visible.
+        let target = el.closest("[data-wc-auto-hidden-empty-request='1']") || el;
+        if(target && target.dataset && target.dataset.wcAutoHiddenEmptyRequest === "1"){
+          target.style.display = "";
+          delete target.dataset.wcAutoHiddenEmptyRequest;
+        }
+      }
+    });
+  }catch(err){
+    console.warn("request panel visibility update failed", err);
+  }
+}
+
+
+
+document.addEventListener("DOMContentLoaded", function(){
+  updateHomeRequestPanelsVisibility_();
+
+  let timer = null;
+  const observer = new MutationObserver(function(){
+    clearTimeout(timer);
+    timer = setTimeout(updateHomeRequestPanelsVisibility_, 80);
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+});
+

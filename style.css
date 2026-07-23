@@ -77,3 +77,58 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
 
 .matching-summary{line-height:1.7}
 .match-filter-note{font-size:12px;color:var(--muted);margin-top:4px}
+
+
+/* WC-7.17 Mobile Viewport Stability */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+* {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.app,
+.app-shell,
+main,
+main > *,
+.page,
+.page-content,
+.content,
+.container {
+  max-width: 100%;
+}
+
+pre,
+code,
+.long-text,
+.card,
+.panel {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
