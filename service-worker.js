@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-17-ui";
+const CACHE="wondercraft-wc-7-18-request-safe";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.17.0",
-  "./config.js?v=7.17.0-ui",
-  "./app.js?v=7.17.0-ui",
+  "./style.css?v=7.18.0",
+  "./config.js?v=7.18.0-request-safe",
+  "./app.js?v=7.18.0-request-safe",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png",
