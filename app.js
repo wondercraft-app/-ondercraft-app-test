@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.31.7 - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.31.8 - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -78,7 +78,7 @@ window.addEventListener("load",async()=>{
     bindEvents();
 
     if($("appVersion")){
-      $("appVersion").textContent=config.VERSION||"WC-7.31.7";
+      $("appVersion").textContent=config.VERSION||"WC-7.31.8";
     }
 
     await initialize();

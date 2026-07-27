@@ -1,13 +1,13 @@
-const CACHE="wondercraft-wc-7-31-7-loader-css-fix";
+const CACHE="wondercraft-wc-7-31-8-nav-logo";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.31.7-loader-css-fix",
-  "./config.js?v=7.31.7-loader-css-fix",
-  "./app.js?v=7.31.7-loader-css-fix",
+  "./style.css?v=7.31.8-nav-logo",
+  "./config.js?v=7.31.8-nav-logo",
+  "./app.js?v=7.31.8-nav-logo",
   "./manifest.json",
   "./offline.html",
-  "./assets/icon-192.png","./assets/wondercraft-company-logo.png",
+  "./assets/icon-192.png","./assets/header-logo.png","./assets/wondercraft-company-logo.png",
   "./assets/icon-512.png",
   "./assets/icon-1024.png"
 ];
