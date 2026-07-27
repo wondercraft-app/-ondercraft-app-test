@@ -718,3 +718,191 @@ main{max-width:1480px;padding:18px 24px 100px}
   }
 }
 
+
+
+/* WC-7.32.3 slider + bottom navigation alignment fix */
+
+/* Single range */
+.job-filter-panel input[type="range"]{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  width:100%!important;
+  height:28px!important;
+  margin:2px 0 0!important;
+  padding:0!important;
+  background:transparent!important;
+  position:relative!important;
+  z-index:2!important;
+}
+
+.job-filter-panel input[type="range"]::-webkit-slider-runnable-track{
+  height:6px!important;
+  border-radius:999px!important;
+  background:#d7dee8!important;
+  border:0!important;
+}
+
+.job-filter-panel input[type="range"]::-moz-range-track{
+  height:6px!important;
+  border-radius:999px!important;
+  background:#d7dee8!important;
+  border:0!important;
+}
+
+.job-filter-panel input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  width:28px!important;
+  height:28px!important;
+  border-radius:50%!important;
+  border:1px solid #d7dee8!important;
+  background:#fff!important;
+  box-shadow:0 2px 8px rgba(20,49,91,.16)!important;
+  margin-top:-11px!important;
+  position:relative!important;
+  z-index:6!important;
+}
+
+.job-filter-panel input[type="range"]::-moz-range-thumb{
+  width:28px!important;
+  height:28px!important;
+  border-radius:50%!important;
+  border:1px solid #d7dee8!important;
+  background:#fff!important;
+  box-shadow:0 2px 8px rgba(20,49,91,.16)!important;
+  position:relative!important;
+  z-index:6!important;
+}
+
+/* Dual range: one visible rail, both thumbs above it */
+.dual-range{
+  position:relative!important;
+  width:100%!important;
+  height:34px!important;
+  margin-top:2px!important;
+}
+
+.dual-range::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  top:14px!important;
+  height:6px!important;
+  border-radius:999px!important;
+  background:#d7dee8!important;
+  z-index:1!important;
+}
+
+.dual-range input[type="range"]{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:34px!important;
+  margin:0!important;
+  pointer-events:none!important;
+  background:transparent!important;
+  z-index:3!important;
+}
+
+.dual-range input[type="range"]::-webkit-slider-runnable-track{
+  height:6px!important;
+  background:transparent!important;
+  border:0!important;
+}
+
+.dual-range input[type="range"]::-moz-range-track{
+  height:6px!important;
+  background:transparent!important;
+  border:0!important;
+}
+
+.dual-range input[type="range"]::-webkit-slider-thumb{
+  pointer-events:auto!important;
+  position:relative!important;
+  z-index:10!important;
+}
+
+.dual-range input[type="range"]::-moz-range-thumb{
+  pointer-events:auto!important;
+  position:relative!important;
+  z-index:10!important;
+}
+
+/* Bottom navigation: equal visual weight */
+.bottom-nav button{
+  font-size:12px!important;
+}
+
+.bottom-nav button > span:first-child,
+.bottom-nav button .nav-icon{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  font-size:25px!important;
+  line-height:1!important;
+  margin:0 auto!important;
+  transform:none!important;
+}
+
+.bottom-nav button[data-view="candidates"] > span:first-child,
+.bottom-nav button[data-view="progress"] > span:first-child{
+  font-size:27px!important;
+  transform:scale(1.06)!important;
+}
+
+.bottom-nav button[data-view="management"] > span:first-child{
+  font-size:24px!important;
+}
+
+.bottom-nav button b,
+.bottom-nav button small,
+.bottom-nav button .nav-label{
+  font-size:12px!important;
+  line-height:1.15!important;
+  margin-top:2px!important;
+}
+
+@media (max-width:700px){
+  .dual-range{
+    height:38px!important;
+  }
+
+  .dual-range::before{
+    top:16px!important;
+  }
+
+  .job-filter-panel input[type="range"]{
+    height:32px!important;
+  }
+
+  .bottom-nav{
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    padding-left:4px!important;
+    padding-right:4px!important;
+  }
+
+  .bottom-nav button{
+    min-height:58px!important;
+    padding:4px 2px!important;
+  }
+
+  .bottom-nav button > span:first-child,
+  .bottom-nav button .nav-icon{
+    width:28px!important;
+    height:28px!important;
+    min-width:28px!important;
+    min-height:28px!important;
+    font-size:24px!important;
+  }
+
+  .bottom-nav button[data-view="candidates"] > span:first-child,
+  .bottom-nav button[data-view="progress"] > span:first-child{
+    font-size:26px!important;
+  }
+}
+
