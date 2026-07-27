@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-32-0-spot-detection";
+const CACHE="wondercraft-wc-7-32-2-mobile-first";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.32.0-spot-detection",
-  "./config.js?v=7.32.0-spot-detection",
-  "./app.js?v=7.32.0-spot-detection",
+  "./style.css?v=7.32.2-mobile-first",
+  "./config.js?v=7.32.2-mobile-first",
+  "./app.js?v=7.32.2-mobile-first",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png","./assets/header-logo.png","./assets/wondercraft-company-logo.png",
