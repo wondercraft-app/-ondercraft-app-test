@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.31.1 - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.31.2.2 - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -14,7 +14,7 @@ window.addEventListener("load",async()=>{
   try{
     registerWonderCraftServiceWorker_();
     bindEvents();
-    if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.31.1.1";
+    if($("appVersion")) $("appVersion").textContent=config.VERSION||"WC-7.31.2.2.1";
     await initialize();
   }catch(error){
     console.error("WonderCraft startup error:",error);
@@ -203,6 +203,9 @@ function bindEvents(){
   $("runJobSearchBtn")?.addEventListener("click",renderJobSearchResults);
   $("resetJobSearchBtn")?.addEventListener("click",resetJobSearch);
   ["jobDistanceRange","jobPayMin","jobPayMax"].forEach(id=>$(id)?.addEventListener("input",updateJobRangeLabels));
+  $("jobRegionFilter")?.addEventListener("change",()=>{updateJobPrefectureOptions();renderJobSearchResults();});
+  $("jobAreaFilter")?.addEventListener("change",renderJobSearchResults);
+  $("jobTravelFilter")?.addEventListener("change",renderJobSearchResults);
   $("jobSort")?.addEventListener("change",renderJobSearchResults);
   $("showEmployeeRegisterBtn")?.addEventListener("click",()=>{const box=$("employeeRegisterBox");if(box)box.hidden=!box.hidden;});
   $("employeeRegisterBtn")?.addEventListener("click",submitEmployeeRegistration);
@@ -916,10 +919,180 @@ function normalizeJobText(v){return String(v||"").normalize("NFKC").toLowerCase(
 function extractJobPay(v){const nums=(String(v||"").replace(/,/g,"").match(/\d{3,6}/g)||[]).map(Number);if(!nums.length)return 0;let n=Math.max(...nums);if(n>100000)n=Math.round(n/20/8);else if(n>10000)n=Math.round(n/8);return n;}
 function inferCareer(x){const t=normalizeJobText([x.shopName,x.originalText,x.sourceCompany].join(" "));if(/docomo|ドコモ/.test(t))return "docomo";if(/softbank|ソフトバンク|\bsb\b/.test(t))return "SB";if(/\bau\b|エーユー/.test(t))return "au";if(/楽天|rakuten/.test(t))return "楽天";return "その他";}
 async function loadJobSearchOnce(){if(jobSearchLoaded){renderJobSearchResults();return;}showWcLoading_("案件を読み込み中…");try{jobSearchItems=await apiGet("matchingJobs")||[];jobSearchLoaded=true;fillJobSearchFilters();updateJobRangeLabels();renderJobSearchResults();}catch(e){$("jobSearchResults").innerHTML=`<div class="error">${esc(e.message||"案件を取得できませんでした。")}</div>`;}finally{await hideWcLoading_();}}
-function fillJobSearchFilters(){const areas=[...new Set(jobSearchItems.flatMap(x=>[x.prefecture,x.area]).filter(Boolean))].sort();const companies=[...new Set(jobSearchItems.map(x=>x.sourceCompany).filter(Boolean))].sort();$("jobAreaFilter").innerHTML='<option value="">すべて</option>'+areas.map(v=>`<option>${esc(v)}</option>`).join('');$("jobCompanyFilter").innerHTML='<option value="">すべて</option>'+companies.map(v=>`<option>${esc(v)}</option>`).join('');}
-function updateJobRangeLabels(){const d=Number($("jobDistanceRange").value);$("jobDistanceValue").textContent=d>=60?"指定なし":`${d}km以内`;let lo=Number($("jobPayMin").value),hi=Number($("jobPayMax").value);if(lo>hi){[$("jobPayMin").value,$("jobPayMax").value]=[hi,lo];lo=Number($("jobPayMin").value);hi=Number($("jobPayMax").value);}$("jobPayValue").textContent=lo===500&&hi===5000?"指定なし":`${lo.toLocaleString()}円 ～ ${hi.toLocaleString()}円`;}
-function resetJobSearch(){[$("jobAreaFilter"),$("jobCompanyFilter"),$("jobCareerFilter"),$("jobBeginnerFilter")].forEach(x=>x.value="");$("jobKeywordFilter").value="";$("jobDistanceRange").value=60;$("jobPayMin").value=500;$("jobPayMax").value=5000;updateJobRangeLabels();renderJobSearchResults();}
-function renderJobSearchResults(){if(!jobSearchLoaded)return;const area=$("jobAreaFilter").value,company=$("jobCompanyFilter").value,career=$("jobCareerFilter").value,beginner=$("jobBeginnerFilter").value,q=normalizeJobText($("jobKeywordFilter").value),min=Number($("jobPayMin").value),max=Number($("jobPayMax").value);let items=jobSearchItems.filter(x=>{const text=normalizeJobText([x.shopName,x.prefecture,x.area,x.sourceCompany,x.price,x.originalText,x.beginnerAvailability].join(" "));const pay=extractJobPay(x.price);return (!area||x.prefecture===area||x.area===area)&&(!company||x.sourceCompany===company)&&(!career||inferCareer(x)===career)&&(!beginner||normalizeJobText(x.beginnerAvailability).includes(normalizeJobText(beginner)))&&(!q||text.includes(q))&&(!pay||(pay>=min&&pay<=max));});const sort=$("jobSort").value;if(sort==="payHigh")items.sort((a,b)=>extractJobPay(b.price)-extractJobPay(a.price));else if(sort==="name")items.sort((a,b)=>String(a.shopName).localeCompare(String(b.shopName),'ja'));$("jobResultCount").textContent=`${items.length}件`;const box=$("jobSearchResults");if(!items.length){box.innerHTML='<div class="empty">条件に合う案件がありません。</div>';return;}box.innerHTML=items.slice(0,100).map(x=>`<article class="job-result-card"><div class="job-result-grid"><div><h3>${esc(x.shopName||"案件名未設定")}</h3><div>📍 ${esc(x.prefecture||x.area||"勤務地要確認")}</div><div>案件元：${esc(x.sourceCompany||"要確認")}</div><div class="job-tags"><span class="job-tag">${esc(inferCareer(x))}</span>${x.beginnerAvailability?`<span class="job-tag">未経験：${esc(x.beginnerAvailability)}</span>`:""}</div></div><div class="job-price">${esc(x.price||"単価要確認")}</div></div>${x.originalText?`<details><summary>案件詳細</summary><div class="remarks">${esc(x.originalText)}</div></details>`:""}</article>`).join('');}
+const WC_JOB_REGION_MAP={"北海道": ["北海道"], "東北": ["青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"], "関東": ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"], "甲信越": ["新潟県", "山梨県", "長野県"], "北陸": ["富山県", "石川県", "福井県"], "東海": ["岐阜県", "静岡県", "愛知県", "三重県"], "関西": ["滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"], "中国": ["鳥取県", "島根県", "岡山県", "広島県", "山口県"], "四国": ["徳島県", "香川県", "愛媛県", "高知県"], "九州": ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県"], "沖縄": ["沖縄県"]};
+
+function updateJobPrefectureOptions(){
+  const region=$("jobRegionFilter")?.value||"";
+  const select=$("jobAreaFilter");
+  if(!select)return;
+
+  if(!region){
+    select.innerHTML='<option value="">エリアを選択してください</option>';
+    select.disabled=true;
+    return;
+  }
+
+  const prefectures=WC_JOB_REGION_MAP[region]||[];
+  select.disabled=false;
+  select.innerHTML=
+    `<option value="${region}">${region}全域</option>`+
+    prefectures.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+}
+
+function fillJobSearchFilters(){
+  const companies=[...new Set(jobSearchItems.map(x=>String(x.sourceCompany||"").trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"ja"));
+
+  updateJobPrefectureOptions();
+  $("jobCompanyFilter").innerHTML='<option value="">すべて</option>'+
+    companies.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+}
+function updateJobRangeLabels(){
+  const d=Number($("jobDistanceRange").value);
+  $("jobDistanceValue").textContent=d>=120?"指定なし":`${d}分以内`;
+
+  let lo=Number($("jobPayMin").value);
+  let hi=Number($("jobPayMax").value);
+
+  if(lo>hi){
+    [$("jobPayMin").value,$("jobPayMax").value]=[hi,lo];
+    lo=Number($("jobPayMin").value);
+    hi=Number($("jobPayMax").value);
+  }
+
+  $("jobPayValue").textContent=
+    lo===10000&&hi===50000
+      ?"指定なし"
+      :`${lo.toLocaleString()}円 ～ ${hi.toLocaleString()}円`;
+}
+function resetJobSearch(){
+  ["jobRegionFilter","jobCompanyFilter","jobCareerFilter","jobBeginnerFilter"].forEach(id=>{
+    if($(id))$(id).value="";
+  });
+
+  $("jobKeywordFilter").value="";
+  $("jobDistanceRange").value=120;
+  $("jobPayMin").value=10000;
+  $("jobPayMax").value=50000;
+  if($("jobTravelFilter"))$("jobTravelFilter").checked=false;
+
+  updateJobPrefectureOptions();
+  updateJobRangeLabels();
+  renderJobSearchResults();
+}
+function getJobCommuteMinutes_(x){
+  const direct=[
+    x.commuteMinutes,x.travelMinutes,x.accessMinutes,x.routeMinutes,
+    x.commuteTime,x.travelTime,x.accessTime
+  ];
+
+  for(const value of direct){
+    const n=Number(String(value==null?"":value).replace(/[^\d.]/g,""));
+    if(Number.isFinite(n)&&n>=0)return n;
+  }
+
+  const text=[x.access,x.station,x.originalText,x.remarks].join(" ");
+  const m=text.match(/(?:徒歩|通勤|所要|アクセス)[^\d]{0,8}(\d{1,3})\s*分/);
+  return m?Number(m[1]):null;
+}
+
+function isTravelJob_(x){
+  const text=normalizeJobText([
+    x.shopName,x.area,x.prefecture,x.originalText,x.remarks,x.workStyle
+  ].join(" "));
+  return /出張|全国対応|全国案件|遠方対応|宿泊/.test(text);
+}
+
+function getJobRegion_(x){
+  const pref=String(x.prefecture||"").trim();
+  for(const [region,prefs] of Object.entries(WC_JOB_REGION_MAP)){
+    if(prefs.includes(pref))return region;
+  }
+  const area=String(x.area||"").trim();
+  return WC_JOB_REGION_MAP[area]?area:"";
+}
+
+function renderJobSearchResults(){
+  if(!jobSearchLoaded)return;
+
+  const region=$("jobRegionFilter")?.value||"";
+  const area=$("jobAreaFilter")?.value||"";
+  const company=$("jobCompanyFilter").value;
+  const career=$("jobCareerFilter").value;
+  const beginner=$("jobBeginnerFilter").value;
+  const q=normalizeJobText($("jobKeywordFilter").value);
+  const min=Number($("jobPayMin").value);
+  const max=Number($("jobPayMax").value);
+  const maxMinutes=Number($("jobDistanceRange").value);
+  const includeTravel=$("jobTravelFilter")?.checked===true;
+
+  let items=jobSearchItems.filter(x=>{
+    const text=normalizeJobText([
+      x.shopName,x.prefecture,x.area,x.sourceCompany,x.price,
+      x.originalText,x.beginnerAvailability,x.remarks
+    ].join(" "));
+
+    const pay=extractJobPay(x.price);
+    const commute=getJobCommuteMinutes_(x);
+    const jobRegion=getJobRegion_(x);
+    const travel=isTravelJob_(x);
+
+    const regionOk=!region||jobRegion===region;
+    const areaOk=!area||(
+      area===region
+        ? jobRegion===region
+        : String(x.prefecture||"").trim()===area
+    );
+
+    const travelOk=includeTravel||!travel;
+    const commuteOk=maxMinutes>=120||commute===null||commute<=maxMinutes;
+    const payOk=!pay||(pay>=min&&pay<=max);
+
+    return regionOk&&areaOk&&travelOk&&commuteOk&&payOk&&
+      (!company||x.sourceCompany===company)&&
+      (!career||inferCareer(x)===career)&&
+      (!beginner||normalizeJobText(x.beginnerAvailability).includes(normalizeJobText(beginner)))&&
+      (!q||text.includes(q));
+  });
+
+  const sort=$("jobSort").value;
+  if(sort==="payHigh"){
+    items.sort((a,b)=>extractJobPay(b.price)-extractJobPay(a.price));
+  }else if(sort==="name"){
+    items.sort((a,b)=>String(a.shopName||"").localeCompare(String(b.shopName||""),"ja"));
+  }
+
+  $("jobResultCount").textContent=`${items.length}件`;
+  const box=$("jobSearchResults");
+
+  if(!items.length){
+    box.innerHTML='<div class="empty">条件に合う案件がありません。</div>';
+    return;
+  }
+
+  box.innerHTML=items.slice(0,20).map(x=>{
+    const commute=getJobCommuteMinutes_(x);
+    const travel=isTravelJob_(x);
+
+    return `<article class="job-result-card">
+      <div class="job-result-grid">
+        <div>
+          <h3>${esc(x.shopName||"案件名未設定")}</h3>
+          <div>📍 ${esc(x.prefecture||x.area||"勤務地要確認")}</div>
+          ${commute!==null?`<div>通勤：約${commute}分</div>`:""}
+          <div>案件元：${esc(x.sourceCompany||"要確認")}</div>
+          <div class="job-tags">
+            <span class="job-tag">${esc(inferCareer(x))}</span>
+            ${x.beginnerAvailability?`<span class="job-tag">未経験：${esc(x.beginnerAvailability)}</span>`:""}
+            ${travel?'<span class="job-tag">出張あり</span>':""}
+          </div>
+        </div>
+        <div class="job-price">${esc(x.price||"単価要確認")}</div>
+      </div>
+      ${x.originalText?`<details><summary>案件詳細</summary><div class="remarks">${esc(x.originalText)}</div></details>`:""}
+    </article>`;
+  }).join("");
+}
 
 let matchingCandidatesLoaded=false;
 let matchingJobsLoaded=false;
