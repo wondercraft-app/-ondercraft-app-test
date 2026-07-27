@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.31.9 - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.32.0 - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -78,7 +78,7 @@ window.addEventListener("load",async()=>{
     bindEvents();
 
     if($("appVersion")){
-      $("appVersion").textContent=config.VERSION||"WC-7.31.9";
+      $("appVersion").textContent=config.VERSION||"WC-7.32.0";
     }
 
     await initialize();
@@ -1247,6 +1247,20 @@ function getJobDate_(job){
 function isSpotJob_(job){
   if(job.isSpot===true||job.spot===true)return true;
 
+  const explicitWorkDateFields=[
+    job.workDate,
+    job.eventDate,
+    job.date,
+    job.eventDates,
+    job.workDates,
+    job.shiftDate,
+    job.scheduleDate
+  ].filter(value=>String(value||"").trim()!=="");
+
+  if(explicitWorkDateFields.length>0){
+    return true;
+  }
+
   const text=normalizeJobText([
     job.shopName,
     job.area,
@@ -1255,25 +1269,38 @@ function isSpotJob_(job){
     job.originalText,
     job.remarks,
     job.workDate,
-    job.startDate,
+    job.eventDate,
+    job.date,
     job.period,
     job.workDays,
-    job.schedule
+    job.schedule,
+    job.category,
+    job.jobType
   ].join(" "));
 
   const explicit=
-    /スポット|単発|単日|短期|イベント|催事|応援販売|ヘルプ案件|週末枠|土日枠|平日枠|\b4w\b|\b2w\b|\b1w\b/i
+    /スポット|単発|単日|短期|イベント|催事|応援販売|ヘルプ案件|週末枠|土日枠|平日枠|週末案件|土日案件|イベント人員|クローザー募集|キャッチャー募集|\b4w\b|\b3w\b|\b2w\b|\b1w\b/i
       .test(text);
 
+  if(explicit)return true;
+
   const dated=
-    /(?:^|\D)(?:\d{1,2})[\/月](?:\d{1,2})(?:日)?(?:\D|$)/
+    /(?:^|\D)(?:20\d{2}[\/\-.年])?\d{1,2}[\/月]\d{1,2}(?:日)?(?:\D|$)/
       .test(text);
 
   const limited=
-    /\d+日間|期間限定|のみ勤務|限定勤務|連勤|稼働日[:：]?\s*\d+[\/・,]/
+    /\d+日間|期間限定|のみ勤務|限定勤務|連勤|稼働日[:：]?\s*\d+[\/・,]|日程[:：]|開催日[:：]|実施日[:：]/
       .test(text);
 
-  return explicit||(dated&&limited);
+  const spotRatePattern=
+    /キャッチャー|クローザー|平日\s*\d+(?:\.\d+)?|土日祝?\s*\d+(?:\.\d+)?|各店\s*\d+名|店舗別/
+      .test(text);
+
+  const multiStorePattern=
+    /.+\/.+/.test(String(job.shopName||"")) ||
+    /店舗[:：]?.+\/.+/.test(text);
+
+  return (dated&&limited)||(dated&&spotRatePattern)||(dated&&multiStorePattern);
 }
 
 function isRemoteJob_(job){
