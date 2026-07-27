@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-32-3-slider-nav";
+const CACHE="wondercraft-wc-7-32-4-final-polish";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.32.3-slider-nav",
-  "./config.js?v=7.32.3-slider-nav",
-  "./app.js?v=7.32.3-slider-nav",
+  "./style.css?v=7.32.4-final-polish",
+  "./config.js?v=7.32.4-final-polish",
+  "./app.js?v=7.32.4-final-polish",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png","./assets/header-logo.png","./assets/wondercraft-company-logo.png",
