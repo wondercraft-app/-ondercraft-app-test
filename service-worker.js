@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-31-6-redesign";
+const CACHE="wondercraft-wc-7-31-7-loader-css-fix";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.31.6-redesign",
-  "./config.js?v=7.31.6-redesign",
-  "./app.js?v=7.31.6-redesign",
+  "./style.css?v=7.31.7-loader-css-fix",
+  "./config.js?v=7.31.7-loader-css-fix",
+  "./app.js?v=7.31.7-loader-css-fix",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png","./assets/wondercraft-company-logo.png",

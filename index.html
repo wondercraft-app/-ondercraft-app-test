@@ -239,6 +239,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
 }
 
 </style>
+  <link rel="stylesheet" href="./style.css?v=7.31.7-loader-css-fix">
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -252,7 +253,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <img class="wc-company-logo" src="./assets/wondercraft-company-logo.png" alt="WonderCraft">
       <div class="wc-brand-copy">
         <strong class="wc-brand-name">WonderCraft</strong>
-        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.31.6</span></div>
+        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.31.7</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -476,7 +477,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
         <article class="notice-card">
           <header><h2>お知らせ</h2></header>
           <div class="notice-list">
-            <p><time>2026/07/27</time> WC-7.31.6 案件検索条件を調整しました。</p>
+            <p><time>2026/07/27</time> WC-7.31.7 案件検索条件を調整しました。</p>
             <p><time>2026/07/26</time> 社員登録・管理者承認に対応しました。</p>
           </div>
         </article>
@@ -559,9 +560,6 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     <button type="button" data-view="management"><span class="nav-icon">⚙</span><span>管理</span></button>
   </nav>
 
-  <script src="./config.js?v=7.31.6-redesign"></script>
-  <script src="./app.js?v=7.31.6-redesign"></script>
-
   <div id="wcLoadingOverlay" class="wc-loading-overlay" aria-live="polite" aria-busy="true">
     <div class="wc-loading-box">
       <div class="wc-loading-logo" aria-hidden="true">
@@ -570,6 +568,42 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <div id="wcLoadingText" class="wc-loading-text">読み込み中…</div>
     </div>
   </div>
+
+  <script>
+    /*
+     * 外部JSが読み込めない場合でも、ローダーを永久表示させない。
+     * 8秒後に必ず解除し、ログイン画面または接続画面を表示する。
+     */
+    window.__wcLoaderFailSafe = window.setTimeout(function(){
+      var overlay = document.getElementById("wcLoadingOverlay");
+      if(overlay){
+        overlay.hidden = true;
+        overlay.setAttribute("aria-busy","false");
+        overlay.style.display = "none";
+      }
+
+      var app = document.getElementById("appPanel");
+      var login = document.getElementById("loginPanel");
+      var system = document.getElementById("systemPanel");
+      var visible =
+        (app && !app.hidden) ||
+        (login && !login.hidden) ||
+        (system && !system.hidden);
+
+      if(!visible && login){
+        login.hidden = false;
+        var message = document.getElementById("loginMessage");
+        if(message){
+          message.textContent =
+            "読み込みに失敗しました。右上の更新を押すか、もう一度ログインしてください。";
+          message.className = "message error";
+        }
+      }
+    }, 8000);
+  </script>
+
+  <script src="./config.js?v=7.31.7-loader-css-fix"></script>
+  <script src="./app.js?v=7.31.7-loader-css-fix"></script>
 
 </body>
 </html>
