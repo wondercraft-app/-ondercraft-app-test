@@ -1,10 +1,10 @@
-const CACHE="wondercraft-wc-7-31-4-spot";
+const CACHE="wondercraft-wc-7-31-5-startup";
 const FILES=[
   "./",
   "./index.html",
   "./style.css?v=7.23.0",
-  "./config.js?v=7.31.4-spot",
-  "./app.js?v=7.31.4-spot",
+  "./config.js?v=7.31.5-startup",
+  "./app.js?v=7.31.5-startup",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png","./assets/wondercraft-company-logo.png",
