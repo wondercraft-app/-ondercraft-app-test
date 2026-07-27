@@ -1,4 +1,4 @@
-/* WonderCraft PWA WC-7.31.8 - 認証・権限基盤 */
+/* WonderCraft PWA WC-7.31.9 - 認証・権限基盤 */
 const state={view:"home",candidates:[],progress:[],today:[],progressStatuses:[],selected:null,runtimeConfig:{},user:null};
 const $=id=>document.getElementById(id);
 const config=window.WONDERCRAFT_CONFIG||{};
@@ -78,7 +78,7 @@ window.addEventListener("load",async()=>{
     bindEvents();
 
     if($("appVersion")){
-      $("appVersion").textContent=config.VERSION||"WC-7.31.8";
+      $("appVersion").textContent=config.VERSION||"WC-7.31.9";
     }
 
     await initialize();
@@ -1180,6 +1180,117 @@ function renderJobSearchResults(){
     </article>`;
   }).join("");
 }
+
+let jobSearchMode="long";
+
+function setJobSearchMode_(mode){
+  jobSearchMode=mode==="spot"?"spot":"long";
+
+  $("jobModeLongBtn")?.classList.toggle("active",jobSearchMode==="long");
+  $("jobModeSpotBtn")?.classList.toggle("active",jobSearchMode==="spot");
+
+  document.querySelectorAll(".spot-only-filter").forEach(el=>{
+    el.hidden=jobSearchMode!=="spot";
+  });
+
+  const note=$("jobResultModeNote");
+  if(note){
+    note.textContent=jobSearchMode==="long"
+      ?"スポット案件は表示していません。"
+      :"スポット案件のみ表示しています。";
+  }
+
+  renderJobSearchResults();
+}
+
+function normalizeSpotDate_(value){
+  if(!value)return "";
+
+  const text=String(value).trim();
+
+  const full=text.match(
+    /(20\d{2})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/
+  );
+  if(full){
+    return `${full[1]}-${String(full[2]).padStart(2,"0")}-${String(full[3]).padStart(2,"0")}`;
+  }
+
+  const monthDay=text.match(
+    /(?:^|\D)(\d{1,2})[\/\-.月](\d{1,2})(?:日|\D|$)/
+  );
+  if(monthDay){
+    const year=new Date().getFullYear();
+    return `${year}-${String(monthDay[1]).padStart(2,"0")}-${String(monthDay[2]).padStart(2,"0")}`;
+  }
+
+  return "";
+}
+
+function getJobDate_(job){
+  for(const value of [
+    job.workDate,
+    job.startDate,
+    job.date,
+    job.eventDate,
+    job.updatedAt,
+    job.updateDate
+  ]){
+    const date=normalizeSpotDate_(value);
+    if(date)return date;
+  }
+
+  return normalizeSpotDate_(
+    [job.originalText,job.remarks,job.shopName].join(" ")
+  );
+}
+
+function isSpotJob_(job){
+  if(job.isSpot===true||job.spot===true)return true;
+
+  const text=normalizeJobText([
+    job.shopName,
+    job.area,
+    job.prefecture,
+    job.price,
+    job.originalText,
+    job.remarks,
+    job.workDate,
+    job.startDate,
+    job.period,
+    job.workDays,
+    job.schedule
+  ].join(" "));
+
+  const explicit=
+    /スポット|単発|単日|短期|イベント|催事|応援販売|ヘルプ案件|週末枠|土日枠|平日枠|\b4w\b|\b2w\b|\b1w\b/i
+      .test(text);
+
+  const dated=
+    /(?:^|\D)(?:\d{1,2})[\/月](?:\d{1,2})(?:日)?(?:\D|$)/
+      .test(text);
+
+  const limited=
+    /\d+日間|期間限定|のみ勤務|限定勤務|連勤|稼働日[:：]?\s*\d+[\/・,]/
+      .test(text);
+
+  return explicit||(dated&&limited);
+}
+
+function isRemoteJob_(job){
+  const text=normalizeJobText([
+    job.shopName,
+    job.area,
+    job.prefecture,
+    job.originalText,
+    job.remarks,
+    job.workStyle,
+    job.location
+  ].join(" "));
+
+  return /リモート|在宅|テレワーク|在宅勤務|フルリモート/.test(text);
+}
+
+
 let matchingCandidatesLoaded=false;
 let matchingJobsLoaded=false;
 let matchingCandidateItems=[];
