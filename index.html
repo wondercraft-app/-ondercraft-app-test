@@ -172,11 +172,77 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
   padding-top:0!important;
 }
 
+
+.brand img,
+.brand-logo,
+.header-logo{
+  width:72px!important;
+  height:52px!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
+.user-menu-trigger{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-height:48px!important;
+  padding:0 16px!important;
+  border:1px solid #d8e1ee!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:#152238!important;
+  font:inherit!important;
+  font-weight:700!important;
+  box-shadow:0 4px 14px rgba(31,65,114,.06)!important;
+}
+.user-menu-trigger:hover{
+  border-color:#a9c3ea!important;
+  background:#f8fbff!important;
+}
+.user-avatar{
+  color:#0f62d6!important;
+  font-size:0!important;
+}
+.user-avatar::before{
+  content:"♙";
+  font-size:20px;
+}
+.job-search-mode-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:0 0 18px;
+}
+.job-search-mode-tabs button{
+  min-height:48px;
+  border:1px solid #d8e1ee;
+  border-radius:14px;
+  background:#fff;
+  font-weight:800;
+  color:#637084;
+}
+.job-search-mode-tabs button.active{
+  background:#0f4aa8;
+  color:#fff;
+  border-color:#0f4aa8;
+}
+.spot-only-filter[hidden],
+.long-only-filter[hidden]{
+  display:none!important;
+}
+.job-result-note{
+  color:#637084;
+  font-size:14px;
+}
+
 </style>
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
-    <img src="./assets/icon-512.png" alt="WonderCraft">
+    <img src="./assets/wondercraft-company-logo.png" alt="WonderCraft">
     <h1>Wonder Craft</h1>
     <p>人材管理システム</p>
   </div>
@@ -186,7 +252,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <div class="wc-brand-mark" aria-hidden="true"><span>W</span><span>C</span></div>
       <div class="wc-brand-copy">
         <strong class="wc-brand-name">WonderCraft</strong>
-        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.31.2.2</span></div>
+        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.31.4.4.2</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -306,6 +372,10 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
           <h1>案件検索</h1>
           <p>希望条件を設定して、マッチング以外の案件を自由に検索できます。</p>
         </section>
+        <div class="job-search-mode-tabs">
+          <button id="jobModeLongBtn" class="active" type="button">長期案件</button>
+          <button id="jobModeSpotBtn" type="button">スポット案件</button>
+        </div>
         <div class="job-search-layout">
           <aside class="job-filter-panel">
             <div class="job-filter-title"><h2>希望条件</h2><button id="resetJobSearchBtn" class="secondary" type="button">条件をリセット</button></div>
@@ -330,9 +400,16 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
                 <option value="">エリアを選択してください</option>
               </select>
             </label>
+            <label>リモート案件
+              <select id="jobRemoteFilter">
+                <option value="exclude" selected>リモート含まない</option>
+                <option value="include">リモート含む</option>
+                <option value="only">リモートのみ</option>
+              </select>
+            </label>
             <label>通勤時間 <strong id="jobDistanceValue">指定なし</strong>
               <input id="jobDistanceRange" type="range" min="0" max="120" step="10" value="120">
-              <span class="range-scale"><span>0分</span><span>60分</span><span>120分</span></span>
+              
             </label>
             <label class="job-check-row">
               <input id="jobTravelFilter" type="checkbox">
@@ -343,8 +420,18 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
                 <input id="jobPayMin" type="range" min="10000" max="50000" step="1000" value="10000">
                 <input id="jobPayMax" type="range" min="10000" max="50000" step="1000" value="50000">
               </div>
-              <span class="range-scale"><span>10,000円</span><span>30,000円</span><span>50,000円</span></span>
+              
             </label>
+            <div class="spot-only-filter" hidden>
+              <label>実施日・開始日（自）
+                <input id="jobSpotDateFrom" type="date">
+              </label>
+            </div>
+            <div class="spot-only-filter" hidden>
+              <label>実施日・開始日（至）
+                <input id="jobSpotDateTo" type="date">
+              </label>
+            </div>
             <label>キャリア<select id="jobCareerFilter"><option value="">すべて</option><option>docomo</option><option>SB</option><option>au</option><option>楽天</option><option>その他</option></select></label>
             <label>提案元会社<select id="jobCompanyFilter"><option value="">すべて</option></select></label>
             <label>経験条件<select id="jobBeginnerFilter"><option value="">指定なし</option><option value="可">未経験可</option><option value="不可">経験者のみ</option></select></label>
@@ -352,7 +439,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
             <button id="runJobSearchBtn" class="primary" type="button">この条件で検索する</button>
           </aside>
           <section class="job-result-panel">
-            <div class="job-result-head"><h2>検索結果</h2><span id="jobResultCount" class="result-count">0件</span></div>
+            <div class="job-result-head"><div><h2>検索結果</h2><p id="jobResultModeNote" class="job-result-note">スポット案件は表示していません。</p></div><span id="jobResultCount" class="result-count">0件</span></div>
             <div class="job-result-tools"><label>並び替え<select id="jobSort"><option value="new">更新日が新しい順</option><option value="payHigh">単価が高い順</option><option value="name">案件名順</option></select></label></div>
             <div id="jobSearchResults" class="job-search-results"></div>
           </section>
@@ -389,7 +476,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
         <article class="notice-card">
           <header><h2>お知らせ</h2></header>
           <div class="notice-list">
-            <p><time>2026/07/27</time> WC-7.31.2.2 案件検索条件を調整しました。</p>
+            <p><time>2026/07/27</time> WC-7.31.4.4.2 案件検索条件を調整しました。</p>
             <p><time>2026/07/26</time> 社員登録・管理者承認に対応しました。</p>
           </div>
         </article>
@@ -472,8 +559,8 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     <button type="button" data-view="management"><span class="nav-icon">⚙</span><span>管理</span></button>
   </nav>
 
-  <script src="./config.js?v=7.31.2-job-filter"></script>
-  <script src="./app.js?v=7.31.2-job-filter"></script>
+  <script src="./config.js?v=7.31.4-spot"></script>
+  <script src="./app.js?v=7.31.4-spot"></script>
 
   <div id="wcLoadingOverlay" class="wc-loading-overlay" aria-live="polite" aria-busy="true">
     <div class="wc-loading-box">

@@ -1,13 +1,13 @@
-const CACHE="wondercraft-wc-7-31-2-job-filter";
+const CACHE="wondercraft-wc-7-31-4-spot";
 const FILES=[
   "./",
   "./index.html",
   "./style.css?v=7.23.0",
-  "./config.js?v=7.31.2-job-filter",
-  "./app.js?v=7.31.2-job-filter",
+  "./config.js?v=7.31.4-spot",
+  "./app.js?v=7.31.4-spot",
   "./manifest.json",
   "./offline.html",
-  "./assets/icon-192.png",
+  "./assets/icon-192.png","./assets/wondercraft-company-logo.png",
   "./assets/icon-512.png",
   "./assets/icon-1024.png"
 ];
