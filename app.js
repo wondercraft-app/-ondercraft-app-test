@@ -2021,17 +2021,9 @@ async function runJobMatching(){
   await hideWcLoading_();
 }
 
-function matchReasonClass(v){
-  const text=String(v||"");
-  if(text.includes("×")||text.includes("不可")) return "match-reason match-reason--bad";
-  if(text.includes("△")||text.includes("○")) return "match-reason match-reason--warn";
-  if(text.includes("◎")) return "match-reason match-reason--good";
-  return "match-reason match-reason--neutral";
-}
-
 function matchBadges(x){
   return `<div class="match-meta"><span class="match-grade">${esc(x.grade||"")}</span>`+
-    (x.reasons||[]).map(v=>`<span class="${matchReasonClass(v)}">${esc(v)}</span>`).join("")+
+    (x.reasons||[]).filter(v=>!v.includes("通勤条件補正")).map(v=>`<span class="match-reason">${esc(v)}</span>`).join("")+
     (x.cautions||[]).map(v=>`<span class="match-caution">${esc(v)}</span>`).join("")+`</div>`;
 }
 
