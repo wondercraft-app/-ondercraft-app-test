@@ -1,11 +1,11 @@
-const CACHE="wondercraft-wc-7-33-10-force-same-prefecture";
+const CACHE="wondercraft-wc-7-33-12-badge-color";
 const FILES=[
   "./",
   "./index.html",
-  "./style.css?v=7.33.11-matching-timeout-fix",
-  "./config.js?v=7.33.11-matching-timeout-fix",
-  "./app.js?v=7.33.11-matching-timeout-fix",
-  "./stations-data.js?v=7.33.11-matching-timeout-fix",
+  "./style.css?v=7.33.12-badge-color",
+  "./config.js?v=7.33.12-badge-color",
+  "./app.js?v=7.33.12-badge-color",
+  "./stations-data.js?v=7.33.12-badge-color",
   "./manifest.json",
   "./offline.html",
   "./assets/icon-192.png","./assets/header-logo.png","./assets/wondercraft-company-logo.png",
