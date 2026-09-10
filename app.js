@@ -2911,12 +2911,12 @@ async function runStationAwareJobSearch_(options={}){
   if(!origin){updateJobRangeLabels();return;}
 
   /*
-   * WC-7.50.6 大量案件向け駅検索
+   * WC-7.50.7 大量案件向け駅検索
    * 24件を6リクエスト並列でNAVITIMEへ投げる方式を廃止。
    * まず最大12件を3件ずつ、1リクエストずつ順番に確認する。
    * GAS/NAVITIMEの同時実行を避け、タイムアウトを防ぐ。
    */
-  const candidates=(jobSearchCurrentItems||[])
+  const candidates=(jobSearchItems||[])
     .filter(job=>
       Number(job.rowNumber)>0 &&
       !Object.prototype.hasOwnProperty.call(
@@ -2975,7 +2975,7 @@ async function runStationAwareJobSearch_(options={}){
     jobStationSearchApplied=true;renderJobSearchResults();
     const box=$("jobSearchResults");
     if(successCount===0){
-      const fallbackCount=(jobSearchCurrentItems||[]).filter(job=>
+      const fallbackCount=(jobSearchItems||[]).filter(job=>
         wcCommuteFallbackCandidateV7505_(
           jobStationCommuteMap[String(job.rowNumber)]||null,
           Number($("jobDistanceRange")?.value||60)
@@ -2990,10 +2990,10 @@ async function runStationAwareJobSearch_(options={}){
       }
 
       box?.insertAdjacentHTML("afterbegin",
-        `<div class="job-search-notice compact">通勤時間APIから実測値を取得できなかったため、${fallbackCount>0?"駅マスタ・直線距離で近い案件を「通勤要確認」として候補表示しています。":"その他の検索条件に合う案件を「通勤要確認」として表示しています。"} 60分以内の確定結果ではありません。</div>`
+        `<div class="job-search-notice compact">通勤時間を取得できなかった案件も「通勤要確認」として候補を残しています。実測できた案件は所要時間を表示し、120分超のみ除外します。</div>`
       );
     }else if(failedBatchCount>0){
-      box?.insertAdjacentHTML("afterbegin",`<div class="job-search-notice compact">実測できた通勤時間を優先し、未取得分は駅マスタ・距離情報から候補を補完しています。</div>`);
+      box?.insertAdjacentHTML("afterbegin",`<div class="job-search-notice compact">通勤時間は段階的に確認しています。未実測案件は「通勤要確認」として残し、実測できた案件を優先表示します。</div>`);
     }
   }catch(error){
     jobStationSearchApplied=false;
@@ -3845,11 +3845,22 @@ function wcJobSearchDiagnosticHtmlV7501_(visibleCount){
 
   if(!valid(raw)&&!valid(active)&&!valid(matched))return "";
 
+  const routeRows=Object.values(jobStationCommuteMap||{});
+  const verifiedCommutes=routeRows.filter(x=>getValidJobCommuteMinutes_(x)!==null).length;
+  const withinPreferred=routeRows.filter(x=>{
+    const m=getValidJobCommuteMinutes_(x);
+    return m!==null&&m<=Number($("jobDistanceRange")?.value||60);
+  }).length;
+
   const parts=[];
   if(valid(raw))parts.push(`案件管理 ${raw.toLocaleString("ja-JP")}件`);
   if(valid(active))parts.push(`検索対象 ${active.toLocaleString("ja-JP")}件`);
   if(valid(matched))parts.push(`条件一致 ${matched.toLocaleString("ja-JP")}件`);
   parts.push(`現在表示 ${Number(visibleCount||0).toLocaleString("ja-JP")}件`);
+  if(jobStationSearchOrigin){
+    parts.push(`通勤実測 ${verifiedCommutes.toLocaleString("ja-JP")}件`);
+    if(verifiedCommutes>0)parts.push(`希望時間内 ${withinPreferred.toLocaleString("ja-JP")}件`);
+  }
 
   const excluded=[];
   const labels=[
@@ -3951,32 +3962,24 @@ function renderJobSearchResults(){
       isUndecidedLocationJob &&
       !samePrefecture;
 
-    if(forceExcludeUndecidedOtherPrefecture){
-      return false;
-    }
+    // WC-7.50.7: 未実測案件はここで落とさず、通勤要確認として残す。
 
     /*
      * WC-7.43.7
      * 希望時間を超えても120分以内なら候補に残す。
      * 120分超だけハード除外。
      */
+    /*
+     * WC-7.50.7 段階式通勤判定
+     * 未実測・取得失敗の案件は「通勤要確認」で残す。
+     * 実測できて120分を超えた案件だけ除外する。
+     */
     const commuteOk=!originStation
       ? true
       : (
-          !jobStationSearchApplied
-            ? true
-            : (
-                commute!==null
-                  ? commute<=120
-                  : (
-                      wcCommuteFallbackCandidateV7505_(routeInfo,maxMinutes) ||
-                      (
-                        samePrefecture &&
-                        areaCompatible &&
-                        (isUndecidedLocationJob || !!textCandidateReason)
-                      )
-                    )
-              )
+          commute!==null
+            ? commute<=120
+            : true
         );
 
     /*
@@ -4105,7 +4108,7 @@ function renderJobSearchResults(){
             type="button"
             class="secondary"
             style="min-width:220px;"
-          >次の候補を探す</button>
+          >次の30件も確認する</button>
         </div>`
       );
 
@@ -4142,12 +4145,10 @@ function renderJobSearchResults(){
           <span>📍 ${esc(x.prefecture||x.area||"勤務地要確認")}</span>
           ${date?`<span>📅 ${esc(date)}</span>`:""}
           ${commute!==null
-            ? `<span>🚃 約${commute}分</span>`
-            : (originStation&&jobStationSearchApplied&&areaCompatible&&isNearestSelectionJob_(x)
-                ? `<span class="job-commute-pending">🚃 最寄り駅から選定</span>`
-                : (originStation&&jobStationSearchApplied&&areaCompatible&&textCandidateReason
-                    ? `<span class="job-text-candidate">📍 ${esc(textCandidateReason)}・候補</span>`
-                    : ""))}
+            ? `<span class="${commute<=maxMinutes?'job-commute-ok':'job-commute-over'}">🚃 約${commute}分${commute<=maxMinutes?'':'（希望時間超）'}</span>`
+            : (originStation
+                ? `<span class="job-commute-pending">🚃 通勤要確認</span>`
+                : "")}
           <span>💴 ${esc(x.price||"単価要確認")}</span>
           ${formatJobConvertedPay_(x.price)?`<span class="job-pay-converted">${esc(formatJobConvertedPay_(x.price))}</span>`:""}
           <span>⭐ おすすめ ${Number(x.__wcSafeRanking?.score||0)}点</span>
