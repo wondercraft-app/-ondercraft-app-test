@@ -330,7 +330,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
 }
 
 
-/* WC-7.51.6 案件検索：PC横長画面でも中央配置 */
+/* WC-7.51.7 案件検索：PC横長画面でも中央配置 */
 #jobSearchSection{
   width:min(1480px,calc(100% - 48px))!important;
   max-width:1480px!important;
@@ -349,8 +349,68 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
   #jobSearchSection{width:calc(100% - 24px)!important;}
 }
 
+
+/* WC-7.51.7 案件検索の位置ズレ最終補正 */
+#jobSearchSection{
+  width:min(1480px,calc(100% - 64px))!important;
+  max-width:1480px!important;
+  margin:0 auto!important;
+  padding-left:0!important;
+  padding-right:0!important;
+  box-sizing:border-box!important;
+}
+#jobSearchSection .job-search-layout,
+#jobSearchSection .job-result-panel{
+  width:100%!important;
+  max-width:none!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  box-sizing:border-box!important;
+}
+#jobSearchSection .job-result-head{
+  position:relative!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:20px!important;
+}
+#jobSearchSection #jobResultCount{
+  position:static!important;
+  inset:auto!important;
+  float:none!important;
+  transform:none!important;
+  margin:0!important;
+  flex:0 0 auto!important;
+}
+#jobSearchSection .job-search-results{
+  width:100%!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  box-sizing:border-box!important;
+}
+#jobSearchSection .job-result-card{
+  width:100%!important;
+  max-width:none!important;
+  margin-left:0!important;
+  margin-right:0!important;
+  box-sizing:border-box!important;
+}
+.wc-commute-debug{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#f3f6fa;
+  color:#68768a;
+  font-size:11px;
+  font-weight:700;
+}
+@media(max-width:760px){
+  #jobSearchSection{width:calc(100% - 24px)!important;}
+}
+
 </style>
-  <link rel="stylesheet" href="./style.css?v=7.51.6-ui-commute-fix">
+  <link rel="stylesheet" href="./style.css?v=7.51.7-commute-diagnostic-layout">
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -364,7 +424,7 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
       <img class="wc-company-logo" src="./assets/header-logo.png" alt="WonderCraft">
       <div class="wc-brand-copy">
         <strong class="wc-brand-name">WonderCraft</strong>
-        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.51.6</span></div>
+        <div class="wc-brand-sub"><span>人材管理</span><span id="appVersion" class="app-version">WC-7.51.7</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -747,9 +807,9 @@ body[data-role="partner"] .topbar .brand strong:after{content:"Partner Portal";f
     }, 8000);
   </script>
 
-  <script src="./config.js?v=7.51.6-ui-commute-fix"></script>
-  <script src="./stations-data.js?v=7.51.6-ui-commute-fix"></script>
-  <script src="./app.js?v=7.51.6-ui-commute-fix"></script>
+  <script src="./config.js?v=7.51.7-commute-diagnostic-layout"></script>
+  <script src="./stations-data.js?v=7.51.7-commute-diagnostic-layout"></script>
+  <script src="./app.js?v=7.51.7-commute-diagnostic-layout"></script>
 
 </body>
 </html>
